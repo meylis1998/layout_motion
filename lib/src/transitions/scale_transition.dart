@@ -1,11 +1,14 @@
 import 'package:flutter/widgets.dart';
 import 'motion_transition.dart';
 
-/// Scales the child in from [beginScale] to 1.0.
+/// Scales the child in from [scale] to 1.0.
 class ScaleIn extends MotionTransition {
-  const ScaleIn({this.beginScale = 0.8});
+  const ScaleIn({this.scale = 0.8});
 
-  final double beginScale;
+  /// The scale value at the start of the enter animation.
+  ///
+  /// Defaults to 0.8. The child scales from this value to 1.0.
+  final double scale;
 
   @override
   Widget build(
@@ -14,18 +17,21 @@ class ScaleIn extends MotionTransition {
     Widget child,
   ) {
     final scaleAnimation = Tween<double>(
-      begin: beginScale,
+      begin: scale,
       end: 1.0,
     ).animate(animation);
     return ScaleTransition(scale: scaleAnimation, child: child);
   }
 }
 
-/// Scales the child out from 1.0 to [endScale].
+/// Scales the child out from 1.0 to [scale].
 class ScaleOut extends MotionTransition {
-  const ScaleOut({this.endScale = 0.8});
+  const ScaleOut({this.scale = 0.8});
 
-  final double endScale;
+  /// The scale value at the end of the exit animation.
+  ///
+  /// Defaults to 0.8. The child scales from 1.0 to this value.
+  final double scale;
 
   @override
   Widget build(
@@ -34,7 +40,7 @@ class ScaleOut extends MotionTransition {
     Widget child,
   ) {
     final scaleAnimation = Tween<double>(
-      begin: endScale,
+      begin: scale,
       end: 1.0,
     ).animate(animation);
     return ScaleTransition(scale: scaleAnimation, child: child);

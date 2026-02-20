@@ -29,6 +29,10 @@ class _MotionChildKey extends ValueKey<Key> {
 /// 6. **Play** — Animate transform from delta to zero
 class MotionLayoutState extends State<MotionLayout>
     with TickerProviderStateMixin {
+  /// Minimum position delta (in logical pixels) required to trigger a move
+  /// animation. Moves smaller than this are applied instantly to avoid
+  /// animating sub-pixel rounding differences across frames.
+  static const double _moveThreshold = 0.5;
   /// The parent RenderBox key for relative position calculations.
   final GlobalKey _parentKey = GlobalKey();
 
@@ -206,7 +210,7 @@ class MotionLayoutState extends State<MotionLayout>
       if (before == null || after == null) continue;
 
       final delta = before.offset - after.offset;
-      if (delta.dx.abs() < 0.5 && delta.dy.abs() < 0.5) {
+      if (delta.dx.abs() < _moveThreshold && delta.dy.abs() < _moveThreshold) {
         // No significant move — skip animation.
         entry.currentTranslationOffset = Offset.zero;
         continue;

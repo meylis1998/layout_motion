@@ -250,8 +250,8 @@ class _WrapReflowDemoState extends State<WrapReflowDemo> {
         child: MotionLayout(
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeOutCubic,
-          enterTransition: const ScaleIn(beginScale: 0.5),
-          exitTransition: const ScaleOut(endScale: 0.5),
+          enterTransition: const ScaleIn(scale: 0.5),
+          exitTransition: const ScaleOut(scale: 0.5),
           child: Wrap(
             spacing: 8,
             runSpacing: 8,

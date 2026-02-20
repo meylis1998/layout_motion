@@ -17,7 +17,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  layout_motion: ^0.1.0
+  layout_motion: ^0.2.0
 ```
 
 ## Usage

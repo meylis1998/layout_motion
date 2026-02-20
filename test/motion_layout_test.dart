@@ -121,7 +121,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: MotionLayout(
             enterTransition: SlideIn(offset: Offset(1, 0)),
-            exitTransition: ScaleOut(endScale: 0.5),
+            exitTransition: ScaleOut(scale: 0.5),
             child: Column(children: [SizedBox(key: ValueKey('a'), height: 50)]),
           ),
         ),
