@@ -8,7 +8,11 @@ class SlideIn extends MotionTransition {
   final Offset offset;
 
   @override
-  Widget build(BuildContext context, Animation<double> animation, Widget child) {
+  Widget build(
+    BuildContext context,
+    Animation<double> animation,
+    Widget child,
+  ) {
     final offsetAnimation = Tween<Offset>(
       begin: offset,
       end: Offset.zero,
@@ -24,7 +28,11 @@ class SlideOut extends MotionTransition {
   final Offset offset;
 
   @override
-  Widget build(BuildContext context, Animation<double> animation, Widget child) {
+  Widget build(
+    BuildContext context,
+    Animation<double> animation,
+    Widget child,
+  ) {
     final offsetAnimation = Tween<Offset>(
       begin: offset,
       end: Offset.zero,

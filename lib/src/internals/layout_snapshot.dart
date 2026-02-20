@@ -2,10 +2,7 @@ import 'package:flutter/widgets.dart';
 
 /// A snapshot of a child's position and size relative to its parent.
 class ChildSnapshot {
-  const ChildSnapshot({
-    required this.offset,
-    required this.size,
-  });
+  const ChildSnapshot({required this.offset, required this.size});
 
   /// Position relative to the ancestor (MotionLayout's RenderBox).
   final Offset offset;
@@ -43,15 +40,14 @@ class LayoutSnapshotManager {
     final snapshots = <Key, ChildSnapshot>{};
     for (final entry in keyMap.entries) {
       final renderObject = entry.value.currentContext?.findRenderObject();
-      if (renderObject == null || renderObject is! RenderBox || !renderObject.hasSize) {
+      if (renderObject == null ||
+          renderObject is! RenderBox ||
+          !renderObject.hasSize) {
         continue;
       }
       final childBox = renderObject;
       final offset = childBox.localToGlobal(Offset.zero, ancestor: ancestor);
-      snapshots[entry.key] = ChildSnapshot(
-        offset: offset,
-        size: childBox.size,
-      );
+      snapshots[entry.key] = ChildSnapshot(offset: offset, size: childBox.size);
     }
     return snapshots;
   }

@@ -51,10 +51,7 @@ void main() {
       expect(result.added, isEmpty);
       expect(result.removed, isEmpty);
       expect(result.moved, isEmpty);
-      expect(
-        result.stable,
-        equals(<Key>{_k('a'), _k('b'), _k('c'), _k('d')}),
-      );
+      expect(result.stable, equals(<Key>{_k('a'), _k('b'), _k('c'), _k('d')}));
     });
 
     test('complete replacement → all old removed, all new added', () {
@@ -173,10 +170,7 @@ void main() {
       expect(result.moved, isEmpty);
 
       // Different single elements.
-      result = ChildDiffer.diff(
-        _keys(<String>['a']),
-        _keys(<String>['b']),
-      );
+      result = ChildDiffer.diff(_keys(<String>['a']), _keys(<String>['b']));
       expect(result.removed, equals(<Key>{_k('a')}));
       expect(result.added, equals(<Key>{_k('b')}));
       expect(result.stable, isEmpty);
@@ -197,10 +191,7 @@ void main() {
 
       expect(result.added, isEmpty);
       expect(result.removed, isEmpty);
-      expect(
-        result.stable,
-        equals(<Key>{_k('a'), _k('b'), _k('c'), _k('d')}),
-      );
+      expect(result.stable, equals(<Key>{_k('a'), _k('b'), _k('c'), _k('d')}));
       expect(result.moved, equals(<Key>{_k('e')}));
     });
 

@@ -1,11 +1,20 @@
 name: layout_motion
-description: Automatic FLIP layout animations for Flutter. Wrap any Column, Row, or Wrap to animate add, remove, and reorder with zero configuration.
+description: >-
+  Automatic FLIP layout animations for Flutter. Wrap any Column, Row, or Wrap
+  to animate add, remove, and reorder with zero configuration.
 version: 0.1.0
-homepage: https://github.com/user/layout_motion
+repository: https://github.com/meylis1998/layout_motion
+issue_tracker: https://github.com/meylis1998/layout_motion/issues
+topics:
+  - animation
+  - layout
+  - widget
+  - flip
+  - transition
 
 environment:
-  sdk: ^3.0.0
-  flutter: ">=3.10.0"
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
 
 dependencies:
   flutter:
@@ -14,4 +23,4 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0

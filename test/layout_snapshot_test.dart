@@ -15,8 +15,14 @@ void main() {
     });
 
     test('toString', () {
-      const snapshot = ChildSnapshot(offset: Offset(10, 20), size: Size(100, 50));
-      expect(snapshot.toString(), 'ChildSnapshot(offset: Offset(10.0, 20.0), size: Size(100.0, 50.0))');
+      const snapshot = ChildSnapshot(
+        offset: Offset(10, 20),
+        size: Size(100, 50),
+      );
+      expect(
+        snapshot.toString(),
+        'ChildSnapshot(offset: Offset(10.0, 20.0), size: Size(100.0, 50.0))',
+      );
     });
   });
 
@@ -34,7 +40,8 @@ void main() {
         ),
       );
 
-      final parentBox = parentKey.currentContext!.findRenderObject() as RenderBox;
+      final parentBox =
+          parentKey.currentContext!.findRenderObject() as RenderBox;
       final result = LayoutSnapshotManager.capture(
         keyMap: {},
         ancestor: parentBox,
@@ -53,7 +60,8 @@ void main() {
         ),
       );
 
-      final parentBox = parentKey.currentContext!.findRenderObject() as RenderBox;
+      final parentBox =
+          parentKey.currentContext!.findRenderObject() as RenderBox;
       final result = LayoutSnapshotManager.capture(
         keyMap: {const ValueKey('orphan'): orphanKey},
         ancestor: parentBox,
@@ -80,7 +88,8 @@ void main() {
         ),
       );
 
-      final parentBox = parentKey.currentContext!.findRenderObject() as RenderBox;
+      final parentBox =
+          parentKey.currentContext!.findRenderObject() as RenderBox;
       final result = LayoutSnapshotManager.capture(
         keyMap: {const ValueKey('child'): childKey},
         ancestor: parentBox,

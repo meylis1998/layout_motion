@@ -86,8 +86,9 @@ class ChildDiffer {
     }
 
     // Step 4 – Run LIS on oldIndicesOfShared.
-    final List<int> lisPositions =
-        _longestIncreasingSubsequence(oldIndicesOfShared);
+    final List<int> lisPositions = _longestIncreasingSubsequence(
+      oldIndicesOfShared,
+    );
 
     // Convert LIS positions to a set for O(1) membership testing.
     final Set<int> lisPositionSet = HashSet<int>.from(lisPositions);

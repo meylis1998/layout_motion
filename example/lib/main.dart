@@ -11,10 +11,7 @@ class LayoutMotionExampleApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'layout_motion Demo',
-      theme: ThemeData(
-        colorSchemeSeed: Colors.deepPurple,
-        useMaterial3: true,
-      ),
+      theme: ThemeData(colorSchemeSeed: Colors.deepPurple, useMaterial3: true),
       home: const DemoSelector(),
     );
   }

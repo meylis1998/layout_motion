@@ -3,6 +3,7 @@
 .packages
 build/
 pubspec.lock
+doc/api/
 
 # IDE
 .idea/

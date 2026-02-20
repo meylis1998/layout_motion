@@ -6,7 +6,11 @@ class FadeIn extends MotionTransition {
   const FadeIn();
 
   @override
-  Widget build(BuildContext context, Animation<double> animation, Widget child) {
+  Widget build(
+    BuildContext context,
+    Animation<double> animation,
+    Widget child,
+  ) {
     return FadeTransition(opacity: animation, child: child);
   }
 }
@@ -16,7 +20,11 @@ class FadeOut extends MotionTransition {
   const FadeOut();
 
   @override
-  Widget build(BuildContext context, Animation<double> animation, Widget child) {
+  Widget build(
+    BuildContext context,
+    Animation<double> animation,
+    Widget child,
+  ) {
     return FadeTransition(opacity: animation, child: child);
   }
 }

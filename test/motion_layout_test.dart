@@ -64,15 +64,11 @@ void main() {
     testWidgets('adding a child triggers enter animation', (tester) async {
       final items = <String>['a', 'b'];
 
-      await tester.pumpWidget(
-        _TestApp(items: List.of(items)),
-      );
+      await tester.pumpWidget(_TestApp(items: List.of(items)));
 
       // Add a new item.
       items.add('c');
-      await tester.pumpWidget(
-        _TestApp(items: List.of(items)),
-      );
+      await tester.pumpWidget(_TestApp(items: List.of(items)));
 
       // The new child should be present.
       expect(find.byKey(const ValueKey('c')), findsOneWidget);
@@ -87,14 +83,10 @@ void main() {
     });
 
     testWidgets('removing a child triggers exit animation', (tester) async {
-      await tester.pumpWidget(
-        const _TestApp(items: ['a', 'b', 'c']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['a', 'b', 'c']));
 
       // Remove 'b'.
-      await tester.pumpWidget(
-        const _TestApp(items: ['a', 'c']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['a', 'c']));
 
       // 'b' should still be visible during exit animation.
       expect(find.byKey(const ValueKey('b')), findsOneWidget);
@@ -105,14 +97,10 @@ void main() {
     });
 
     testWidgets('reordering children animates positions', (tester) async {
-      await tester.pumpWidget(
-        const _TestApp(items: ['a', 'b', 'c']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['a', 'b', 'c']));
 
       // Reorder.
-      await tester.pumpWidget(
-        const _TestApp(items: ['c', 'a', 'b']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['c', 'a', 'b']));
 
       // All children should still be present.
       expect(find.byKey(const ValueKey('a')), findsOneWidget);
@@ -134,11 +122,7 @@ void main() {
           child: MotionLayout(
             enterTransition: SlideIn(offset: Offset(1, 0)),
             exitTransition: ScaleOut(endScale: 0.5),
-            child: Column(
-              children: [
-                SizedBox(key: ValueKey('a'), height: 50),
-              ],
-            ),
+            child: Column(children: [SizedBox(key: ValueKey('a'), height: 50)]),
           ),
         ),
       );
@@ -148,9 +132,7 @@ void main() {
     });
 
     testWidgets('default transitions are FadeIn and FadeOut', (tester) async {
-      const motionLayout = MotionLayout(
-        child: Column(children: []),
-      );
+      const motionLayout = MotionLayout(child: Column(children: []));
 
       expect(motionLayout.effectiveEnterTransition, isA<FadeIn>());
       expect(motionLayout.effectiveExitTransition, isA<FadeOut>());

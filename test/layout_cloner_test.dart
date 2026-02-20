@@ -13,10 +13,10 @@ void main() {
         children: [SizedBox(key: ValueKey('a'))],
       );
 
-      final cloned = LayoutCloner.cloneWithChildren(
-        original,
-        const [SizedBox(key: ValueKey('b')), SizedBox(key: ValueKey('c'))],
-      );
+      final cloned = LayoutCloner.cloneWithChildren(original, const [
+        SizedBox(key: ValueKey('b')),
+        SizedBox(key: ValueKey('c')),
+      ]);
 
       expect(cloned, isA<Column>());
       final col = cloned as Column;
@@ -34,10 +34,9 @@ void main() {
         children: [SizedBox(key: ValueKey('a'))],
       );
 
-      final cloned = LayoutCloner.cloneWithChildren(
-        original,
-        const [SizedBox(key: ValueKey('x'))],
-      );
+      final cloned = LayoutCloner.cloneWithChildren(original, const [
+        SizedBox(key: ValueKey('x')),
+      ]);
 
       expect(cloned, isA<Row>());
       final row = cloned as Row;
@@ -58,10 +57,9 @@ void main() {
         children: [SizedBox(key: ValueKey('a'))],
       );
 
-      final cloned = LayoutCloner.cloneWithChildren(
-        original,
-        const [SizedBox(key: ValueKey('y'))],
-      );
+      final cloned = LayoutCloner.cloneWithChildren(original, const [
+        SizedBox(key: ValueKey('y')),
+      ]);
 
       expect(cloned, isA<Wrap>());
       final wrap = cloned as Wrap;
@@ -86,7 +84,12 @@ void main() {
 
   group('LayoutCloner.getChildren', () {
     test('extracts children from Column', () {
-      const col = Column(children: [SizedBox(), Text('hi', textDirection: TextDirection.ltr)]);
+      const col = Column(
+        children: [
+          SizedBox(),
+          Text('hi', textDirection: TextDirection.ltr),
+        ],
+      );
       final children = LayoutCloner.getChildren(col);
       expect(children, hasLength(2));
     });

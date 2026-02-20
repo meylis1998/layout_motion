@@ -8,7 +8,11 @@ class ScaleIn extends MotionTransition {
   final double beginScale;
 
   @override
-  Widget build(BuildContext context, Animation<double> animation, Widget child) {
+  Widget build(
+    BuildContext context,
+    Animation<double> animation,
+    Widget child,
+  ) {
     final scaleAnimation = Tween<double>(
       begin: beginScale,
       end: 1.0,
@@ -24,7 +28,11 @@ class ScaleOut extends MotionTransition {
   final double endScale;
 
   @override
-  Widget build(BuildContext context, Animation<double> animation, Widget child) {
+  Widget build(
+    BuildContext context,
+    Animation<double> animation,
+    Widget child,
+  ) {
     final scaleAnimation = Tween<double>(
       begin: endScale,
       end: 1.0,

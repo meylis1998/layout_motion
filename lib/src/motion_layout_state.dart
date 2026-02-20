@@ -115,8 +115,7 @@ class MotionLayoutState extends State<MotionLayout>
       final key = child.key!;
       if (diff.added.contains(key)) {
         final existing = _entries[key];
-        if (existing != null &&
-            existing.state == ChildAnimationState.exiting) {
+        if (existing != null && existing.state == ChildAnimationState.exiting) {
           // Re-added during exit: cancel exit, restart as entering.
           _cancelTransition(existing);
           existing.widget = child;
@@ -235,10 +234,7 @@ class MotionLayoutState extends State<MotionLayout>
     );
     entry.moveController = controller;
 
-    final animation = CurvedAnimation(
-      parent: controller,
-      curve: widget.curve,
-    );
+    final animation = CurvedAnimation(parent: controller, curve: widget.curve);
 
     entry.currentTranslationOffset = delta;
 
@@ -382,19 +378,13 @@ class MotionLayoutState extends State<MotionLayout>
 
     return ClipRect(
       clipBehavior: widget.clipBehavior,
-      child: KeyedSubtree(
-        key: _parentKey,
-        child: cloned,
-      ),
+      child: KeyedSubtree(key: _parentKey, child: cloned),
     );
   }
 
   Widget _buildChild(AnimatedChildEntry entry) {
     // Inner wrapper with GlobalKey for RenderBox position tracking.
-    Widget child = KeyedSubtree(
-      key: entry.globalKey,
-      child: entry.widget,
-    );
+    Widget child = KeyedSubtree(key: entry.globalKey, child: entry.widget);
 
     // Apply move transform.
     if (entry.currentTranslationOffset != Offset.zero) {
@@ -422,8 +412,11 @@ class MotionLayoutState extends State<MotionLayout>
       );
       final reversedAnimation = ReverseAnimation(animation);
       child = IgnorePointer(
-        child: widget.effectiveExitTransition
-            .build(context, reversedAnimation, child),
+        child: widget.effectiveExitTransition.build(
+          context,
+          reversedAnimation,
+          child,
+        ),
       );
     }
 
@@ -431,10 +424,7 @@ class MotionLayoutState extends State<MotionLayout>
     // properly reconcile old and new children — this prevents GlobalKey
     // conflicts when the inner nesting depth changes (e.g., idle → exiting
     // adds wrappers). Using _MotionChildKey avoids duplicating the user's key.
-    return KeyedSubtree(
-      key: _MotionChildKey(entry.key),
-      child: child,
-    );
+    return KeyedSubtree(key: _MotionChildKey(entry.key), child: child);
   }
 
   void _initializeEntries() {

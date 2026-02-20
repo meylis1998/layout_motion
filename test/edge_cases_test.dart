@@ -4,8 +4,9 @@ import 'package:layout_motion/layout_motion.dart';
 
 void main() {
   group('Edge cases', () {
-    testWidgets('disabled MotionLayout shows changes instantly',
-        (tester) async {
+    testWidgets('disabled MotionLayout shows changes instantly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const Directionality(
           textDirection: TextDirection.ltr,
@@ -30,11 +31,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: MotionLayout(
             enabled: false,
-            child: Column(
-              children: [
-                SizedBox(key: ValueKey('a'), height: 50),
-              ],
-            ),
+            child: Column(children: [SizedBox(key: ValueKey('a'), height: 50)]),
           ),
         ),
       );
@@ -65,11 +62,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: MotionLayout(
             duration: Duration.zero,
-            child: Column(
-              children: [
-                SizedBox(key: ValueKey('a'), height: 50),
-              ],
-            ),
+            child: Column(children: [SizedBox(key: ValueKey('a'), height: 50)]),
           ),
         ),
       );
@@ -78,18 +71,13 @@ void main() {
       expect(find.byKey(const ValueKey('b')), findsNothing);
     });
 
-    testWidgets('identical rebuild does not create animations',
-        (tester) async {
+    testWidgets('identical rebuild does not create animations', (tester) async {
       const items = ['a', 'b', 'c'];
 
-      await tester.pumpWidget(
-        const _TestApp(items: items),
-      );
+      await tester.pumpWidget(const _TestApp(items: items));
 
       // Rebuild with identical items.
-      await tester.pumpWidget(
-        const _TestApp(items: items),
-      );
+      await tester.pumpWidget(const _TestApp(items: items));
 
       // Should settle immediately since nothing changed.
       await tester.pumpAndSettle(const Duration(milliseconds: 1));
@@ -100,14 +88,10 @@ void main() {
     });
 
     testWidgets('complete replacement of all children', (tester) async {
-      await tester.pumpWidget(
-        const _TestApp(items: ['a', 'b']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['a', 'b']));
 
       // Replace all children.
-      await tester.pumpWidget(
-        const _TestApp(items: ['x', 'y', 'z']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['x', 'y', 'z']));
 
       // New children should be present.
       expect(find.byKey(const ValueKey('x')), findsOneWidget);
@@ -125,20 +109,14 @@ void main() {
     });
 
     testWidgets('re-adding a child during exit cancels exit', (tester) async {
-      await tester.pumpWidget(
-        const _TestApp(items: ['a', 'b', 'c']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['a', 'b', 'c']));
 
       // Remove 'b'.
-      await tester.pumpWidget(
-        const _TestApp(items: ['a', 'c']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['a', 'c']));
 
       // Mid-animation, re-add 'b'.
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.pumpWidget(
-        const _TestApp(items: ['a', 'b', 'c']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['a', 'b', 'c']));
 
       // 'b' should still be present.
       expect(find.byKey(const ValueKey('b')), findsOneWidget);
@@ -148,14 +126,10 @@ void main() {
     });
 
     testWidgets('disposes cleanly with active animations', (tester) async {
-      await tester.pumpWidget(
-        const _TestApp(items: ['a', 'b']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['a', 'b']));
 
       // Trigger an animation.
-      await tester.pumpWidget(
-        const _TestApp(items: ['a', 'b', 'c']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['a', 'b', 'c']));
 
       await tester.pump(const Duration(milliseconds: 50));
 
@@ -172,25 +146,19 @@ void main() {
     });
 
     testWidgets('single child works', (tester) async {
-      await tester.pumpWidget(
-        const _TestApp(items: ['only']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['only']));
 
       expect(find.byKey(const ValueKey('only')), findsOneWidget);
       await tester.pumpAndSettle();
     });
 
     testWidgets('empty children list works', (tester) async {
-      await tester.pumpWidget(
-        const _TestApp(items: []),
-      );
+      await tester.pumpWidget(const _TestApp(items: []));
 
       await tester.pumpAndSettle();
 
       // Add items after starting empty.
-      await tester.pumpWidget(
-        const _TestApp(items: ['first']),
-      );
+      await tester.pumpWidget(const _TestApp(items: ['first']));
 
       expect(find.byKey(const ValueKey('first')), findsOneWidget);
       await tester.pumpAndSettle();
