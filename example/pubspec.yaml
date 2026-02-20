@@ -1,0 +1,12 @@
+name: layout_motion_example
+description: Example app demonstrating layout_motion package.
+publish_to: 'none'
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  layout_motion:
+    path: ../
