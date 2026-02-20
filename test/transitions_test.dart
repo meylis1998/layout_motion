@@ -5,10 +5,7 @@ import 'package:layout_motion/layout_motion.dart';
 /// Helper that builds a MotionTransition inside a real widget tree so that
 /// a valid BuildContext is available.
 class _TransitionHarness extends StatelessWidget {
-  const _TransitionHarness({
-    required this.transition,
-    required this.animation,
-  });
+  const _TransitionHarness({required this.transition, required this.animation});
 
   final MotionTransition transition;
   final Animation<double> animation;

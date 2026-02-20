@@ -1,3 +1,14 @@
+## 0.2.1
+
+- Add scale parameter assertions to `ScaleIn`/`ScaleOut` constructors
+- Add clarifying code comments for reversed animation and listener patterns
+- Add README badges, migration guide, troubleshooting, and accessibility docs
+- Add Row usage example to README
+- Add Row layout demo to example app
+- Add GitHub Actions CI and docs workflows
+- Add RTL (right-to-left) tests
+- Add performance tests with large child counts
+
 ## 0.2.0
 
 - **BREAKING:** Rename `ScaleIn.beginScale` → `ScaleIn.scale` and `ScaleOut.endScale` → `ScaleOut.scale` for consistent parameter naming

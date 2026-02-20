@@ -1,5 +1,8 @@
 # layout_motion
 
+[![pub package](https://img.shields.io/pub/v/layout_motion.svg)](https://pub.dev/packages/layout_motion)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 Automatic FLIP layout animations for Flutter. Wrap any `Column`, `Row`, or `Wrap` to animate child additions, removals, and reorders with zero configuration.
 
 ## Features
@@ -50,11 +53,33 @@ MotionLayout(
 )
 ```
 
+### Row
+
+```dart
+MotionLayout(
+  enterTransition: const SlideIn(offset: Offset(0.15, 0)),
+  exitTransition: const FadeOut(),
+  child: Row(
+    children: [
+      for (final tag in tags)
+        Chip(key: ValueKey(tag), label: Text(tag)),
+    ],
+  ),
+)
+```
+
 ### Supported Layouts
 
 - `Column`
 - `Row`
 - `Wrap`
+
+## Migrating from v0.1.0
+
+v0.2.0 renamed the scale transition parameters for consistency:
+
+- `ScaleIn.beginScale` → `ScaleIn.scale`
+- `ScaleOut.endScale` → `ScaleOut.scale`
 
 ## API Reference
 
@@ -92,6 +117,37 @@ class MyTransition extends MotionTransition {
   }
 }
 ```
+
+## Troubleshooting
+
+### Animations not working
+
+Ensure all children have unique `Key`s. Without keys, Flutter cannot track which children were added, removed, or reordered.
+
+### Unsupported layout type
+
+`MotionLayout` only supports `Column`, `Row`, and `Wrap` as the direct child. Other layout widgets are not supported.
+
+### Children overlap during animation
+
+Adjust the `clipBehavior` parameter. The default `Clip.hardEdge` clips overflowing children. Use `Clip.none` to allow children to paint outside the layout bounds during animation.
+
+### Performance with many items
+
+For large lists where you temporarily need to disable animations (e.g. during bulk updates), set `enabled: false` to skip animation processing entirely.
+
+## Accessibility
+
+Respect user preferences for reduced motion by integrating with `MediaQuery.disableAnimations`:
+
+```dart
+MotionLayout(
+  enabled: !MediaQuery.of(context).disableAnimations,
+  child: Column(children: [...]),
+)
+```
+
+This disables all animations when the user has enabled "Reduce motion" in their system accessibility settings.
 
 ## How It Works
 

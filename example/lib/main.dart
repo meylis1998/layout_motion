@@ -50,6 +50,14 @@ class DemoSelector extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const WrapReflowDemo()),
             ),
           ),
+          ListTile(
+            title: const Text('Row Layout'),
+            subtitle: const Text('Horizontal row with animated add/remove'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const RowDemo()),
+            ),
+          ),
         ],
       ),
     );
@@ -261,6 +269,84 @@ class _WrapReflowDemoState extends State<WrapReflowDemo> {
                   key: ValueKey(tag),
                   label: Text(tag),
                   onDeleted: () => _removeTag(tag),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo 4: Row Layout — Horizontal row with add/remove/shuffle
+// ---------------------------------------------------------------------------
+class RowDemo extends StatefulWidget {
+  const RowDemo({super.key});
+
+  @override
+  State<RowDemo> createState() => _RowDemoState();
+}
+
+class _RowDemoState extends State<RowDemo> {
+  var _items = <int>[1, 2, 3, 4, 5];
+  int _nextId = 6;
+
+  void _addItem() {
+    setState(() {
+      _items.add(_nextId++);
+    });
+  }
+
+  void _removeItem(int id) {
+    setState(() {
+      _items.remove(id);
+    });
+  }
+
+  void _shuffle() {
+    setState(() {
+      _items = List.of(_items)..shuffle(Random());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Row Layout'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shuffle),
+            tooltip: 'Shuffle',
+            onPressed: _shuffle,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add',
+            onPressed: _addItem,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.all(16),
+        child: MotionLayout(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+          enterTransition: const SlideIn(offset: Offset(0.15, 0)),
+          exitTransition: const ScaleOut(),
+          child: Row(
+            children: [
+              for (final id in _items)
+                Padding(
+                  key: ValueKey(id),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: ActionChip(
+                    avatar: CircleAvatar(child: Text('$id')),
+                    label: Text('Item $id'),
+                    onPressed: () => _removeItem(id),
+                  ),
                 ),
             ],
           ),

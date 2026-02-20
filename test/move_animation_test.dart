@@ -96,9 +96,7 @@ void main() {
       expect(find.byKey(const ValueKey('c')), findsOneWidget);
     });
 
-    testWidgets('move and enter work together for added items', (
-      tester,
-    ) async {
+    testWidgets('move and enter work together for added items', (tester) async {
       await tester.pumpWidget(const _TestApp(items: ['a', 'c']));
       await tester.pumpAndSettle();
 

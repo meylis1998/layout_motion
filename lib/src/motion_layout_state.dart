@@ -33,6 +33,7 @@ class MotionLayoutState extends State<MotionLayout>
   /// animation. Moves smaller than this are applied instantly to avoid
   /// animating sub-pixel rounding differences across frames.
   static const double _moveThreshold = 0.5;
+
   /// The parent RenderBox key for relative position calculations.
   final GlobalKey _parentKey = GlobalKey();
 
@@ -242,6 +243,10 @@ class MotionLayoutState extends State<MotionLayout>
 
     entry.currentTranslationOffset = delta;
 
+    // The closure captures `entry` and `delta` by reference. This is safe
+    // because the controller is stored in `entry.moveController` and properly
+    // disposed via `_pendingDisposal` when the animation completes (status
+    // listener below) or is interrupted (top of `_startMove`).
     animation.addListener(() {
       if (!mounted) return;
       setState(() {

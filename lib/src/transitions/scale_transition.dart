@@ -3,7 +3,8 @@ import 'motion_transition.dart';
 
 /// Scales the child in from [scale] to 1.0.
 class ScaleIn extends MotionTransition {
-  const ScaleIn({this.scale = 0.8});
+  const ScaleIn({this.scale = 0.8})
+    : assert(scale > 0, 'scale must be positive');
 
   /// The scale value at the start of the enter animation.
   ///
@@ -26,7 +27,8 @@ class ScaleIn extends MotionTransition {
 
 /// Scales the child out from 1.0 to [scale].
 class ScaleOut extends MotionTransition {
-  const ScaleOut({this.scale = 0.8});
+  const ScaleOut({this.scale = 0.8})
+    : assert(scale > 0, 'scale must be positive');
 
   /// The scale value at the end of the exit animation.
   ///

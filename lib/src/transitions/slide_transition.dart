@@ -22,6 +22,11 @@ class SlideIn extends MotionTransition {
 }
 
 /// Slides the child out toward [offset].
+///
+/// The Tween animates from [offset] to [Offset.zero], which looks like a
+/// "slide in". However, the FLIP engine wraps exit animations in
+/// [ReverseAnimation] (see `motion_layout_state.dart` `_buildChild`), so the
+/// visual effect is [Offset.zero] → [offset] — i.e. the child slides out.
 class SlideOut extends MotionTransition {
   const SlideOut({this.offset = const Offset(0, 0.15)});
 
