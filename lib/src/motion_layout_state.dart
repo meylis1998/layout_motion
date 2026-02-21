@@ -461,14 +461,18 @@ class MotionLayoutState extends State<MotionLayout>
     // Apply enter/exit transition using stored CurvedAnimation.
     if (entry.state == ChildAnimationState.entering &&
         entry.transitionCurvedAnimation != null) {
-      child = widget.effectiveEnterTransition
-          .build(context, entry.transitionCurvedAnimation!, child);
+      child = widget.effectiveEnterTransition.build(
+        context,
+        entry.transitionCurvedAnimation!,
+        child,
+      );
     } else if (entry.state == ChildAnimationState.exiting &&
         entry.transitionCurvedAnimation != null) {
       // Exit controller goes forward 0→1, but transition needs 1→0.
       // Create a reversed animation so opacity/scale animate from visible to gone.
-      final reversedAnimation =
-          ReverseAnimation(entry.transitionCurvedAnimation!);
+      final reversedAnimation = ReverseAnimation(
+        entry.transitionCurvedAnimation!,
+      );
       child = IgnorePointer(
         child: widget.effectiveExitTransition.build(
           context,

@@ -80,14 +80,8 @@ class AnimatedChildEntry {
   }
 
   /// Creates an idle entry with a fresh [GlobalKey].
-  factory AnimatedChildEntry.idle({
-    required Key key,
-    required Widget widget,
-  }) {
-    return AnimatedChildEntry(
-      key: key,
-      widget: widget,
-      globalKey: GlobalKey(),
-    )..state = ChildAnimationState.idle;
+  factory AnimatedChildEntry.idle({required Key key, required Widget widget}) {
+    return AnimatedChildEntry(key: key, widget: widget, globalKey: GlobalKey())
+      ..state = ChildAnimationState.idle;
   }
 }
