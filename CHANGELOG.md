@@ -1,3 +1,16 @@
+## 0.3.3
+
+- **FIX:** Snap exiting children to their pre-removal visual position so they don't jump during exit transitions
+- **FIX:** Stop in-progress move animations when exit starts to prevent offset override
+- **FIX:** Include exiting children in snapshot capture for correct position tracking
+- Add constructor assertion validating child is Column, Row, Wrap, or Stack
+- Add Stack layout demo and Advanced Options demo to example app
+- Add animation lifecycle stress tests (23 tests covering rapid updates, interruption, disposal)
+- Fix example widget test (was broken boilerplate referencing wrong class)
+- Add `flutter_test` and `flutter_lints` to example dev_dependencies
+- Exclude `example/` from root analyzer to prevent cross-package analysis errors
+- Add GitHub Sponsors funding link to pubspec
+
 ## 0.3.2
 
 - **FIX:** Preserve `spacing` property when cloning `Column` and `Row` (Flutter 3.27+)

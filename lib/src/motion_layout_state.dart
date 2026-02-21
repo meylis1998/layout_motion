@@ -156,8 +156,7 @@ class MotionLayoutState extends State<MotionLayout>
 
     final keyMap = <Key, GlobalKey>{};
     for (final entry in _entries.values) {
-      if (entry.state != ChildAnimationState.exiting &&
-          entry.state != ChildAnimationState.removed) {
+      if (entry.state != ChildAnimationState.removed) {
         keyMap[entry.key] = entry.globalKey;
       }
     }
@@ -186,8 +185,7 @@ class MotionLayoutState extends State<MotionLayout>
     // --- LAST: capture "after" positions ---
     final keyMap = <Key, GlobalKey>{};
     for (final entry in _entries.values) {
-      if (entry.state != ChildAnimationState.exiting &&
-          entry.state != ChildAnimationState.removed) {
+      if (entry.state != ChildAnimationState.removed) {
         keyMap[entry.key] = entry.globalKey;
       }
     }
@@ -217,6 +215,19 @@ class MotionLayoutState extends State<MotionLayout>
       }
 
       _startMove(entry, delta);
+      anyMoveStarted = true;
+    }
+
+    // Snap exiting children to their pre-removal visual position so they
+    // don't jump to the end of the layout during the exit transition.
+    for (final entry in _entries.values) {
+      if (entry.state != ChildAnimationState.exiting) continue;
+      final before = entry.beforeSnapshot;
+      final after = afterSnapshots[entry.key];
+      if (before == null || after == null) continue;
+
+      final delta = before.offset - after.offset;
+      entry.currentTranslationOffset = delta;
       anyMoveStarted = true;
     }
 
@@ -320,6 +331,15 @@ class MotionLayoutState extends State<MotionLayout>
 
   void _startExit(AnimatedChildEntry entry) {
     entry.state = ChildAnimationState.exiting;
+
+    // Stop any in-progress move animation so the exit position offset
+    // (computed in _performFlipAfterLayout) won't be overridden.
+    if (entry.moveController != null) {
+      entry.moveCurvedAnimation?.dispose();
+      entry.moveCurvedAnimation = null;
+      _pendingDisposal.add(entry.moveController!);
+      entry.moveController = null;
+    }
 
     if (entry.transitionController != null) {
       entry.transitionCurvedAnimation?.dispose();

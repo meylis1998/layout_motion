@@ -39,7 +39,11 @@ class MotionLayout extends StatefulWidget {
     this.enabled = true,
     this.moveThreshold = 0.5,
     this.transitionDuration,
-  }) : assert(moveThreshold > 0, 'moveThreshold must be greater than 0');
+  }) : assert(moveThreshold > 0, 'moveThreshold must be greater than 0'),
+       assert(
+         child is Column || child is Row || child is Wrap || child is Stack,
+         'MotionLayout child must be a Column, Row, Wrap, or Stack.',
+       );
 
   /// The layout widget whose children will be animated.
   ///
