@@ -14,6 +14,15 @@ void main() {
       expect(a, isNot(equals(c)));
     });
 
+    test('hashCode differs for different snapshots', () {
+      const a = ChildSnapshot(offset: Offset(10, 20), size: Size(100, 50));
+      const b = ChildSnapshot(offset: Offset(30, 40), size: Size(100, 50));
+      const c = ChildSnapshot(offset: Offset(10, 20), size: Size(200, 60));
+
+      expect(a.hashCode, isNot(equals(b.hashCode)));
+      expect(a.hashCode, isNot(equals(c.hashCode)));
+    });
+
     test('toString', () {
       const snapshot = ChildSnapshot(
         offset: Offset(10, 20),

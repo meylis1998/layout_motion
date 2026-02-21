@@ -29,11 +29,6 @@ class _MotionChildKey extends ValueKey<Key> {
 /// 6. **Play** — Animate transform from delta to zero
 class MotionLayoutState extends State<MotionLayout>
     with TickerProviderStateMixin {
-  /// Minimum position delta (in logical pixels) required to trigger a move
-  /// animation. Moves smaller than this are applied instantly to avoid
-  /// animating sub-pixel rounding differences across frames.
-  static const double _moveThreshold = 0.5;
-
   /// The parent RenderBox key for relative position calculations.
   final GlobalKey _parentKey = GlobalKey();
 
@@ -95,14 +90,13 @@ class MotionLayoutState extends State<MotionLayout>
     final newChildren = LayoutCloner.getChildren(widget.child);
     final newKeys = <Key>[];
     for (final child in newChildren) {
-      assert(
-        child.key != null,
-        'MotionLayout: All children must have a Key. '
-        'Found a ${child.runtimeType} without a key.',
-      );
-      if (child.key != null) {
-        newKeys.add(child.key!);
+      if (child.key == null) {
+        throw ArgumentError(
+          'MotionLayout: All children must have a Key. '
+          'Found a ${child.runtimeType} without a key.',
+        );
       }
+      newKeys.add(child.key!);
     }
 
     final diff = ChildDiffer.diff(_previousKeys, newKeys);
@@ -211,7 +205,8 @@ class MotionLayoutState extends State<MotionLayout>
       if (before == null || after == null) continue;
 
       final delta = before.offset - after.offset;
-      if (delta.dx.abs() < _moveThreshold && delta.dy.abs() < _moveThreshold) {
+      if (delta.dx.abs() < widget.moveThreshold &&
+          delta.dy.abs() < widget.moveThreshold) {
         // No significant move — skip animation.
         entry.currentTranslationOffset = Offset.zero;
         continue;
@@ -277,7 +272,7 @@ class MotionLayoutState extends State<MotionLayout>
     }
 
     final controller = AnimationController(
-      duration: widget.duration,
+      duration: widget.effectiveTransitionDuration,
       vsync: this,
     );
     entry.transitionController = controller;
@@ -303,7 +298,7 @@ class MotionLayoutState extends State<MotionLayout>
     }
 
     final controller = AnimationController(
-      duration: widget.duration,
+      duration: widget.effectiveTransitionDuration,
       vsync: this,
     );
     entry.transitionController = controller;
@@ -441,20 +436,19 @@ class MotionLayoutState extends State<MotionLayout>
     _previousKeys = [];
 
     for (final child in children) {
-      assert(
-        child.key != null,
-        'MotionLayout: All children must have a Key. '
-        'Found a ${child.runtimeType} without a key.',
-      );
-      if (child.key != null) {
-        final key = child.key!;
-        _previousKeys.add(key);
-        _entries[key] = AnimatedChildEntry(
-          key: key,
-          widget: child,
-          globalKey: GlobalKey(),
-        )..state = ChildAnimationState.idle;
+      if (child.key == null) {
+        throw ArgumentError(
+          'MotionLayout: All children must have a Key. '
+          'Found a ${child.runtimeType} without a key.',
+        );
       }
+      final key = child.key!;
+      _previousKeys.add(key);
+      _entries[key] = AnimatedChildEntry(
+        key: key,
+        widget: child,
+        globalKey: GlobalKey(),
+      )..state = ChildAnimationState.idle;
     }
   }
 

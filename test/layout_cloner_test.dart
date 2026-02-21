@@ -73,10 +73,33 @@ void main() {
       expect(wrap.children, hasLength(1));
     });
 
+    test('clones Stack preserving all properties', () {
+      const original = Stack(
+        alignment: AlignmentDirectional.center,
+        textDirection: TextDirection.rtl,
+        fit: StackFit.expand,
+        clipBehavior: Clip.antiAlias,
+        children: [SizedBox(key: ValueKey('a'))],
+      );
+
+      final cloned = LayoutCloner.cloneWithChildren(original, const [
+        SizedBox(key: ValueKey('b')),
+        SizedBox(key: ValueKey('c')),
+      ]);
+
+      expect(cloned, isA<Stack>());
+      final stack = cloned as Stack;
+      expect(stack.alignment, AlignmentDirectional.center);
+      expect(stack.textDirection, TextDirection.rtl);
+      expect(stack.fit, StackFit.expand);
+      expect(stack.clipBehavior, Clip.antiAlias);
+      expect(stack.children, hasLength(2));
+    });
+
     test('throws UnsupportedError for unsupported widget', () {
-      const stack = Stack(children: []);
+      final listView = ListView(children: const []);
       expect(
-        () => LayoutCloner.cloneWithChildren(stack, []),
+        () => LayoutCloner.cloneWithChildren(listView, []),
         throwsUnsupportedError,
       );
     });
@@ -106,9 +129,15 @@ void main() {
       expect(children, hasLength(2));
     });
 
+    test('extracts children from Stack', () {
+      const stack = Stack(children: [SizedBox(), SizedBox()]);
+      final children = LayoutCloner.getChildren(stack);
+      expect(children, hasLength(2));
+    });
+
     test('throws for unsupported widget', () {
-      const stack = Stack(children: []);
-      expect(() => LayoutCloner.getChildren(stack), throwsUnsupportedError);
+      final listView = ListView(children: const []);
+      expect(() => LayoutCloner.getChildren(listView), throwsUnsupportedError);
     });
   });
 }

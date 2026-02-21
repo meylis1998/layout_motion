@@ -1,3 +1,12 @@
+## 0.3.0
+
+- **FIX:** Key validation now throws `ArgumentError` in release builds (was assert-only)
+- Add configurable `moveThreshold` parameter to control sub-pixel move filtering
+- Add `transitionDuration` parameter for independent enter/exit animation timing
+- Add `Stack` layout support
+- Improve `AnimatedChildEntry` test coverage (`isAnimating`, `dispose()`)
+- Add `DiffResult.toString()` and `ChildSnapshot.hashCode` coverage tests
+
 ## 0.2.1
 
 - Add scale parameter assertions to `ScaleIn`/`ScaleOut` constructors

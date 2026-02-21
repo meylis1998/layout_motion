@@ -212,6 +212,20 @@ void main() {
       expect(result.moved.length, equals(2));
     });
 
+    test('DiffResult.toString() includes all sets', () {
+      final DiffResult result = ChildDiffer.diff(
+        _keys(<String>['a', 'b']),
+        _keys(<String>['b', 'c']),
+      );
+
+      final str = result.toString();
+      expect(str, startsWith('DiffResult('));
+      expect(str, contains('added:'));
+      expect(str, contains('removed:'));
+      expect(str, contains('moved:'));
+      expect(str, contains('stable:'));
+    });
+
     test('all sets are mutually exclusive and cover all keys', () {
       final List<Key> oldKeys = _keys(<String>['a', 'b', 'c', 'd', 'e']);
       final List<Key> newKeys = _keys(<String>['b', 'f', 'd', 'a', 'g']);

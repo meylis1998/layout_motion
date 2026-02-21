@@ -152,6 +152,49 @@ void main() {
       await tester.pumpAndSettle();
     });
 
+    testWidgets('throws ArgumentError for child without key on first build', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: MotionLayout(
+            child: Column(
+              children: [
+                SizedBox(key: ValueKey('a'), height: 50),
+                SizedBox(height: 50), // no key
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isA<ArgumentError>());
+    });
+
+    testWidgets('throws ArgumentError for child without key on update', (
+      tester,
+    ) async {
+      await tester.pumpWidget(const _TestApp(items: ['a', 'b']));
+
+      // Rebuild with a child missing a key.
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: MotionLayout(
+            child: Column(
+              children: [
+                SizedBox(key: ValueKey('a'), height: 50),
+                SizedBox(height: 50), // no key
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isA<ArgumentError>());
+    });
+
     testWidgets('empty children list works', (tester) async {
       await tester.pumpWidget(const _TestApp(items: []));
 

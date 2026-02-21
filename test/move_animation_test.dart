@@ -176,6 +176,54 @@ void main() {
       expect(cPosAfter.dx, lessThan(cPosBefore.dx));
     });
 
+    testWidgets('high moveThreshold suppresses small moves', (tester) async {
+      // Use a very high threshold so that normal reorders are suppressed.
+      await tester.pumpWidget(
+        const _ThresholdTestApp(items: ['a', 'b', 'c'], moveThreshold: 9999),
+      );
+      await tester.pumpAndSettle();
+
+      // Reorder: c, b, a.
+      await tester.pumpWidget(
+        const _ThresholdTestApp(items: ['c', 'b', 'a'], moveThreshold: 9999),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // With a huge threshold, no Transform.translate should appear.
+      expect(find.byType(Transform), findsNothing);
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('low moveThreshold triggers moves', (tester) async {
+      await tester.pumpWidget(
+        const _ThresholdTestApp(items: ['a', 'b', 'c'], moveThreshold: 0.01),
+      );
+      await tester.pumpAndSettle();
+
+      // Reorder: c, b, a.
+      await tester.pumpWidget(
+        const _ThresholdTestApp(items: ['c', 'b', 'a'], moveThreshold: 0.01),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // With a tiny threshold, Transform.translate should appear.
+      expect(find.byType(Transform), findsWidgets);
+      await tester.pumpAndSettle();
+    });
+
+    test('moveThreshold assertion rejects <= 0', () {
+      expect(
+        () => MotionLayout(moveThreshold: 0, child: const Column(children: [])),
+        throwsA(isA<AssertionError>()),
+      );
+
+      expect(
+        () =>
+            MotionLayout(moveThreshold: -1, child: const Column(children: [])),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
     testWidgets('custom curve is applied to move animation', (tester) async {
       await tester.pumpWidget(
         const _TestApp(
@@ -231,6 +279,30 @@ class _TestApp extends StatelessWidget {
       child: MotionLayout(
         duration: duration,
         curve: curve,
+        child: Column(
+          children: [
+            for (final item in items)
+              SizedBox(key: ValueKey(item), height: 50, width: 100),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThresholdTestApp extends StatelessWidget {
+  const _ThresholdTestApp({required this.items, required this.moveThreshold});
+
+  final List<String> items;
+  final double moveThreshold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: MotionLayout(
+        duration: const Duration(milliseconds: 300),
+        moveThreshold: moveThreshold,
         child: Column(
           children: [
             for (final item in items)

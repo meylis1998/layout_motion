@@ -347,6 +347,112 @@ void main() {
     });
   });
 
+  group('transitionDuration', () {
+    testWidgets('enter completes at transitionDuration, not duration', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: MotionLayout(
+            duration: Duration(milliseconds: 300),
+            transitionDuration: Duration(milliseconds: 600),
+            child: Column(children: [SizedBox(key: ValueKey('a'), height: 50)]),
+          ),
+        ),
+      );
+
+      // Add a new child — triggers enter.
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: MotionLayout(
+            duration: Duration(milliseconds: 300),
+            transitionDuration: Duration(milliseconds: 600),
+            child: Column(
+              children: [
+                SizedBox(key: ValueKey('a'), height: 50),
+                SizedBox(key: ValueKey('b'), height: 50),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // At 300ms (duration), animation should NOT be complete.
+      await tester.pump(const Duration(milliseconds: 300));
+      // FadeTransition should still be active.
+      expect(find.byType(FadeTransition), findsOneWidget);
+
+      // At 600ms (transitionDuration), animation should be complete.
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('b')), findsOneWidget);
+    });
+
+    testWidgets('exit completes at transitionDuration', (tester) async {
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: MotionLayout(
+            duration: Duration(milliseconds: 300),
+            transitionDuration: Duration(milliseconds: 600),
+            child: Column(
+              children: [
+                SizedBox(key: ValueKey('a'), height: 50),
+                SizedBox(key: ValueKey('b'), height: 50),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Remove child — triggers exit.
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: MotionLayout(
+            duration: Duration(milliseconds: 300),
+            transitionDuration: Duration(milliseconds: 600),
+            child: Column(children: [SizedBox(key: ValueKey('a'), height: 50)]),
+          ),
+        ),
+      );
+
+      // At 300ms, 'b' should still be exiting.
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byKey(const ValueKey('b')), findsOneWidget);
+
+      // At 600ms, 'b' should be removed.
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('b')), findsNothing);
+    });
+
+    test('effectiveTransitionDuration falls back to duration', () {
+      const layout = MotionLayout(
+        duration: Duration(milliseconds: 400),
+        child: Column(children: []),
+      );
+      expect(
+        layout.effectiveTransitionDuration,
+        const Duration(milliseconds: 400),
+      );
+    });
+
+    test('effectiveTransitionDuration returns transitionDuration when set', () {
+      const layout = MotionLayout(
+        duration: Duration(milliseconds: 400),
+        transitionDuration: Duration(milliseconds: 200),
+        child: Column(children: []),
+      );
+      expect(
+        layout.effectiveTransitionDuration,
+        const Duration(milliseconds: 200),
+      );
+    });
+  });
+
   group('Custom MotionTransition', () {
     testWidgets('can be extended for custom effects', (tester) async {
       final controller = AnimationController(

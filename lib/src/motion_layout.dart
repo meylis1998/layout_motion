@@ -6,8 +6,8 @@ import 'transitions/fade_transition.dart';
 
 /// A widget that automatically animates layout changes in its child.
 ///
-/// Wrap any [Column], [Row], or [Wrap] to get smooth FLIP (First, Last,
-/// Invert, Play) animations whenever children are added, removed, or
+/// Wrap any [Column], [Row], [Wrap], or [Stack] to get smooth FLIP (First,
+/// Last, Invert, Play) animations whenever children are added, removed, or
 /// reordered.
 ///
 /// Children **must** have unique [Key]s for the diff algorithm to track them.
@@ -27,7 +27,7 @@ import 'transitions/fade_transition.dart';
 class MotionLayout extends StatefulWidget {
   /// Creates a [MotionLayout] that animates layout changes in [child].
   ///
-  /// The [child] must be a [Column], [Row], or [Wrap].
+  /// The [child] must be a [Column], [Row], [Wrap], or [Stack].
   const MotionLayout({
     super.key,
     required this.child,
@@ -37,16 +37,19 @@ class MotionLayout extends StatefulWidget {
     this.exitTransition,
     this.clipBehavior = Clip.hardEdge,
     this.enabled = true,
-  });
+    this.moveThreshold = 0.5,
+    this.transitionDuration,
+  }) : assert(moveThreshold > 0, 'moveThreshold must be greater than 0');
 
   /// The layout widget whose children will be animated.
   ///
-  /// Must be a [Column], [Row], or [Wrap].
+  /// Must be a [Column], [Row], [Wrap], or [Stack].
   final Widget child;
 
-  /// Duration of move and enter/exit animations.
+  /// Duration of move animations.
   ///
-  /// Defaults to 300ms.
+  /// Also used as the fallback for enter/exit transitions when
+  /// [transitionDuration] is not specified. Defaults to 300ms.
   final Duration duration;
 
   /// The animation curve for move animations.
@@ -74,6 +77,22 @@ class MotionLayout extends StatefulWidget {
   /// When false, layout changes are instant (no animation overhead).
   /// Defaults to true.
   final bool enabled;
+
+  /// Minimum position delta (in logical pixels) required to trigger a move
+  /// animation. Moves smaller than this are applied instantly to avoid
+  /// animating sub-pixel rounding differences across frames.
+  ///
+  /// Must be greater than 0. Defaults to `0.5`.
+  final double moveThreshold;
+
+  /// Duration of enter/exit transition animations.
+  ///
+  /// When null, falls back to [duration]. This allows move and transition
+  /// animations to run at independent speeds.
+  final Duration? transitionDuration;
+
+  /// The effective transition duration, falling back to [duration].
+  Duration get effectiveTransitionDuration => transitionDuration ?? duration;
 
   /// The effective enter transition, falling back to [FadeIn].
   MotionTransition get effectiveEnterTransition =>

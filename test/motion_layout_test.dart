@@ -61,6 +61,25 @@ void main() {
       expect(find.byKey(const ValueKey('2')), findsOneWidget);
     });
 
+    testWidgets('renders children in a Stack', (tester) async {
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: MotionLayout(
+            child: Stack(
+              children: [
+                SizedBox(key: ValueKey('s1'), width: 50, height: 50),
+                SizedBox(key: ValueKey('s2'), width: 50, height: 50),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const ValueKey('s1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('s2')), findsOneWidget);
+    });
+
     testWidgets('adding a child triggers enter animation', (tester) async {
       final items = <String>['a', 'b'];
 
