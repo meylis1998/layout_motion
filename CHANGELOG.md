@@ -1,3 +1,12 @@
+## 0.3.1
+
+- **FIX:** Dispose `CurvedAnimation` objects before their parent controllers to prevent listener leaks
+- **FIX:** Defer `_entries.remove()` in exit status listener to avoid map mutation during iteration
+- **FIX:** Replace per-frame `setState` in move animations with scoped `AnimatedBuilder` rebuilds
+- Guard status listeners against double-disposal when animations race
+- Extract `AnimatedChildEntry.idle()` factory to deduplicate entry creation
+- Update README: add `Stack` references, `moveThreshold`/`transitionDuration` to API table, bump version
+
 ## 0.3.0
 
 - **FIX:** Key validation now throws `ArgumentError` in release builds (was assert-only)

@@ -3,7 +3,7 @@
 [![pub package](https://img.shields.io/pub/v/layout_motion.svg)](https://pub.dev/packages/layout_motion)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Automatic FLIP layout animations for Flutter. Wrap any `Column`, `Row`, or `Wrap` to animate child additions, removals, and reorders with zero configuration.
+Automatic FLIP layout animations for Flutter. Wrap any `Column`, `Row`, `Wrap`, or `Stack` to animate child additions, removals, and reorders with zero configuration.
 
 ## Features
 
@@ -20,7 +20,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  layout_motion: ^0.2.0
+  layout_motion: ^0.3.0
 ```
 
 ## Usage
@@ -73,6 +73,7 @@ MotionLayout(
 - `Column`
 - `Row`
 - `Wrap`
+- `Stack`
 
 ## Migrating from v0.1.0
 
@@ -87,13 +88,15 @@ v0.2.0 renamed the scale transition parameters for consistency:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `child` | `Widget` | required | A `Column`, `Row`, or `Wrap` |
+| `child` | `Widget` | required | A `Column`, `Row`, `Wrap`, or `Stack` |
 | `duration` | `Duration` | 300ms | Animation duration |
 | `curve` | `Curve` | `Curves.easeInOut` | Animation curve |
 | `enterTransition` | `MotionTransition?` | `FadeIn()` | Transition for entering children |
 | `exitTransition` | `MotionTransition?` | `FadeOut()` | Transition for exiting children |
 | `clipBehavior` | `Clip` | `Clip.hardEdge` | How to clip during animation |
 | `enabled` | `bool` | `true` | Set to `false` to disable all animations |
+| `moveThreshold` | `double` | `0.5` | Minimum position delta (logical pixels) to trigger a move animation |
+| `transitionDuration` | `Duration?` | `null` | Duration for enter/exit transitions (falls back to `duration`) |
 
 ### Built-in Transitions
 
@@ -126,7 +129,7 @@ Ensure all children have unique `Key`s. Without keys, Flutter cannot track which
 
 ### Unsupported layout type
 
-`MotionLayout` only supports `Column`, `Row`, and `Wrap` as the direct child. Other layout widgets are not supported.
+`MotionLayout` only supports `Column`, `Row`, `Wrap`, and `Stack` as the direct child. Other layout widgets are not supported.
 
 ### Children overlap during animation
 

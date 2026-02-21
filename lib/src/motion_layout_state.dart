@@ -44,6 +44,10 @@ class MotionLayoutState extends State<MotionLayout>
   /// Controllers pending disposal (deferred to avoid disposing during listeners).
   final List<AnimationController> _pendingDisposal = [];
 
+  /// Keys pending removal from [_entries] (deferred to avoid map mutation
+  /// during iteration).
+  final Set<Key> _pendingRemovals = {};
+
   @override
   void didUpdateWidget(covariant MotionLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -63,6 +67,7 @@ class MotionLayoutState extends State<MotionLayout>
     }
     _entries.clear();
     _flushPendingDisposals();
+    _flushPendingRemovals();
 
     // Re-initialize entries without animation.
     final children = LayoutCloner.getChildren(widget.child);
@@ -71,17 +76,14 @@ class MotionLayoutState extends State<MotionLayout>
       if (child.key != null) {
         final key = child.key!;
         _previousKeys.add(key);
-        _entries[key] = AnimatedChildEntry(
-          key: key,
-          widget: child,
-          globalKey: GlobalKey(),
-        )..state = ChildAnimationState.idle;
+        _entries[key] = AnimatedChildEntry.idle(key: key, widget: child);
       }
     }
   }
 
   void _handleAnimatedUpdate() {
     _flushPendingDisposals();
+    _flushPendingRemovals();
 
     // --- FIRST: capture "before" positions ---
     _captureBeforePositions();
@@ -120,16 +122,10 @@ class MotionLayoutState extends State<MotionLayout>
           existing.widget = child;
           _startEnter(existing);
         } else {
-          final entry = AnimatedChildEntry(
-            key: key,
-            widget: child,
-            globalKey: GlobalKey(),
-          );
+          final entry = AnimatedChildEntry.idle(key: key, widget: child);
           _entries[key] = entry;
           if (!_isFirstBuild) {
             _startEnter(entry);
-          } else {
-            entry.state = ChildAnimationState.idle;
           }
         }
       } else {
@@ -195,6 +191,7 @@ class MotionLayoutState extends State<MotionLayout>
     );
 
     // --- INVERT + PLAY ---
+    bool anyMoveStarted = false;
     final movedOrStable = {...diff.moved, ...diff.stable};
     for (final key in movedOrStable) {
       final entry = _entries[key];
@@ -213,17 +210,26 @@ class MotionLayoutState extends State<MotionLayout>
       }
 
       _startMove(entry, delta);
+      anyMoveStarted = true;
     }
 
     // Clear before snapshots.
     for (final entry in _entries.values) {
       entry.beforeSnapshot = null;
     }
+
+    // Trigger one rebuild so AnimatedBuilder gets inserted into the tree.
+    // Subsequent frame updates are handled by AnimatedBuilder without setState.
+    if (anyMoveStarted && mounted) {
+      setState(() {});
+    }
   }
 
   void _startMove(AnimatedChildEntry entry, Offset delta) {
     // Stop any in-progress move.
     if (entry.moveController != null) {
+      entry.moveCurvedAnimation?.dispose();
+      entry.moveCurvedAnimation = null;
       _pendingDisposal.add(entry.moveController!);
       entry.moveController = null;
     }
@@ -235,6 +241,7 @@ class MotionLayoutState extends State<MotionLayout>
     entry.moveController = controller;
 
     final animation = CurvedAnimation(parent: controller, curve: widget.curve);
+    entry.moveCurvedAnimation = animation;
 
     entry.currentTranslationOffset = delta;
 
@@ -242,20 +249,25 @@ class MotionLayoutState extends State<MotionLayout>
     // because the controller is stored in `entry.moveController` and properly
     // disposed via `_pendingDisposal` when the animation completes (status
     // listener below) or is interrupted (top of `_startMove`).
+    //
+    // No setState — AnimatedBuilder in _buildChild handles scoped rebuild.
     animation.addListener(() {
-      if (!mounted) return;
-      setState(() {
-        final t = animation.value;
-        entry.currentTranslationOffset = Offset.lerp(delta, Offset.zero, t)!;
-      });
+      final t = animation.value;
+      entry.currentTranslationOffset = Offset.lerp(delta, Offset.zero, t)!;
     });
 
     controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         entry.currentTranslationOffset = Offset.zero;
-        // Defer disposal — we're inside the controller's own listener.
-        _pendingDisposal.add(controller);
-        entry.moveController = null;
+        // Guard: only dispose if this controller is still the active one.
+        // An interruption or exit may have already added it to _pendingDisposal.
+        if (entry.moveController == controller) {
+          entry.moveCurvedAnimation?.dispose();
+          entry.moveCurvedAnimation = null;
+          // Defer disposal — we're inside the controller's own listener.
+          _pendingDisposal.add(controller);
+          entry.moveController = null;
+        }
         if (mounted) setState(() {});
       }
     });
@@ -267,6 +279,8 @@ class MotionLayoutState extends State<MotionLayout>
     entry.state = ChildAnimationState.entering;
 
     if (entry.transitionController != null) {
+      entry.transitionCurvedAnimation?.dispose();
+      entry.transitionCurvedAnimation = null;
       _pendingDisposal.add(entry.transitionController!);
       entry.transitionController = null;
     }
@@ -276,12 +290,20 @@ class MotionLayoutState extends State<MotionLayout>
       vsync: this,
     );
     entry.transitionController = controller;
+    entry.transitionCurvedAnimation = CurvedAnimation(
+      parent: controller,
+      curve: widget.curve,
+    );
 
     controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         entry.state = ChildAnimationState.idle;
-        _pendingDisposal.add(controller);
-        entry.transitionController = null;
+        if (entry.transitionController == controller) {
+          entry.transitionCurvedAnimation?.dispose();
+          entry.transitionCurvedAnimation = null;
+          _pendingDisposal.add(controller);
+          entry.transitionController = null;
+        }
         if (mounted) setState(() {});
       }
     });
@@ -293,6 +315,8 @@ class MotionLayoutState extends State<MotionLayout>
     entry.state = ChildAnimationState.exiting;
 
     if (entry.transitionController != null) {
+      entry.transitionCurvedAnimation?.dispose();
+      entry.transitionCurvedAnimation = null;
       _pendingDisposal.add(entry.transitionController!);
       entry.transitionController = null;
     }
@@ -302,18 +326,29 @@ class MotionLayoutState extends State<MotionLayout>
       vsync: this,
     );
     entry.transitionController = controller;
+    entry.transitionCurvedAnimation = CurvedAnimation(
+      parent: controller,
+      curve: widget.curve,
+    );
 
     controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         entry.state = ChildAnimationState.removed;
-        _entries.remove(entry.key);
+        // Defer removal to avoid map mutation during iteration.
+        _pendingRemovals.add(entry.key);
         // Defer disposal of both controllers.
         if (entry.moveController != null) {
+          entry.moveCurvedAnimation?.dispose();
+          entry.moveCurvedAnimation = null;
           _pendingDisposal.add(entry.moveController!);
           entry.moveController = null;
         }
-        _pendingDisposal.add(controller);
-        entry.transitionController = null;
+        if (entry.transitionController == controller) {
+          entry.transitionCurvedAnimation?.dispose();
+          entry.transitionCurvedAnimation = null;
+          _pendingDisposal.add(controller);
+          entry.transitionController = null;
+        }
         if (mounted) setState(() {});
       }
     });
@@ -327,6 +362,8 @@ class MotionLayoutState extends State<MotionLayout>
   void _cancelTransition(AnimatedChildEntry entry) {
     if (entry.transitionController != null) {
       entry.transitionController!.stop();
+      entry.transitionCurvedAnimation?.dispose();
+      entry.transitionCurvedAnimation = null;
       _pendingDisposal.add(entry.transitionController!);
       entry.transitionController = null;
     }
@@ -340,6 +377,16 @@ class MotionLayoutState extends State<MotionLayout>
     _pendingDisposal.clear();
   }
 
+  /// Removes entries that were deferred from status listener callbacks
+  /// to avoid map mutation during iteration.
+  void _flushPendingRemovals() {
+    if (_pendingRemovals.isEmpty) return;
+    for (final key in _pendingRemovals) {
+      _entries.remove(key);
+    }
+    _pendingRemovals.clear();
+  }
+
   RenderBox? _getParentRenderBox() {
     final renderObject = _parentKey.currentContext?.findRenderObject();
     if (renderObject is RenderBox && renderObject.hasSize) {
@@ -351,6 +398,7 @@ class MotionLayoutState extends State<MotionLayout>
   @override
   Widget build(BuildContext context) {
     _flushPendingDisposals();
+    _flushPendingRemovals();
 
     if (_isFirstBuild) {
       _initializeEntries();
@@ -391,30 +439,36 @@ class MotionLayoutState extends State<MotionLayout>
     Widget child = KeyedSubtree(key: entry.globalKey, child: entry.widget);
 
     // Apply move transform.
-    if (entry.currentTranslationOffset != Offset.zero) {
+    // When an active move animation exists, use AnimatedBuilder to scope
+    // rebuilds to just this child's subtree (avoids full tree setState).
+    if (entry.moveCurvedAnimation != null) {
+      child = AnimatedBuilder(
+        animation: entry.moveCurvedAnimation!,
+        child: child,
+        builder: (context, childWidget) {
+          final offset = entry.currentTranslationOffset;
+          if (offset == Offset.zero) return childWidget!;
+          return Transform.translate(offset: offset, child: childWidget);
+        },
+      );
+    } else if (entry.currentTranslationOffset != Offset.zero) {
       child = Transform.translate(
         offset: entry.currentTranslationOffset,
         child: child,
       );
     }
 
-    // Apply enter/exit transition.
+    // Apply enter/exit transition using stored CurvedAnimation.
     if (entry.state == ChildAnimationState.entering &&
-        entry.transitionController != null) {
-      final animation = CurvedAnimation(
-        parent: entry.transitionController!,
-        curve: widget.curve,
-      );
-      child = widget.effectiveEnterTransition.build(context, animation, child);
+        entry.transitionCurvedAnimation != null) {
+      child = widget.effectiveEnterTransition
+          .build(context, entry.transitionCurvedAnimation!, child);
     } else if (entry.state == ChildAnimationState.exiting &&
-        entry.transitionController != null) {
+        entry.transitionCurvedAnimation != null) {
       // Exit controller goes forward 0→1, but transition needs 1→0.
       // Create a reversed animation so opacity/scale animate from visible to gone.
-      final animation = CurvedAnimation(
-        parent: entry.transitionController!,
-        curve: widget.curve,
-      );
-      final reversedAnimation = ReverseAnimation(animation);
+      final reversedAnimation =
+          ReverseAnimation(entry.transitionCurvedAnimation!);
       child = IgnorePointer(
         child: widget.effectiveExitTransition.build(
           context,
@@ -444,11 +498,7 @@ class MotionLayoutState extends State<MotionLayout>
       }
       final key = child.key!;
       _previousKeys.add(key);
-      _entries[key] = AnimatedChildEntry(
-        key: key,
-        widget: child,
-        globalKey: GlobalKey(),
-      )..state = ChildAnimationState.idle;
+      _entries[key] = AnimatedChildEntry.idle(key: key, widget: child);
     }
   }
 
@@ -458,6 +508,7 @@ class MotionLayoutState extends State<MotionLayout>
       entry.dispose();
     }
     _entries.clear();
+    _pendingRemovals.clear();
     _flushPendingDisposals();
     super.dispose();
   }

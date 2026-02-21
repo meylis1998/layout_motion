@@ -44,6 +44,14 @@ class AnimatedChildEntry {
   /// Controller for the enter/exit transition animation.
   AnimationController? transitionController;
 
+  /// The [CurvedAnimation] wrapping [moveController].
+  /// Stored so it can be disposed before its parent controller.
+  CurvedAnimation? moveCurvedAnimation;
+
+  /// The [CurvedAnimation] wrapping [transitionController].
+  /// Stored so it can be disposed before its parent controller.
+  CurvedAnimation? transitionCurvedAnimation;
+
   /// The snapshot captured before a layout change ("First" in FLIP).
   ChildSnapshot? beforeSnapshot;
 
@@ -62,8 +70,24 @@ class AnimatedChildEntry {
       (transitionController?.isAnimating ?? false);
 
   /// Disposes all animation controllers owned by this entry.
+  /// Curved animations are disposed before their parent controllers
+  /// to detach listeners before the parent is torn down.
   void dispose() {
+    moveCurvedAnimation?.dispose();
+    transitionCurvedAnimation?.dispose();
     moveController?.dispose();
     transitionController?.dispose();
+  }
+
+  /// Creates an idle entry with a fresh [GlobalKey].
+  factory AnimatedChildEntry.idle({
+    required Key key,
+    required Widget widget,
+  }) {
+    return AnimatedChildEntry(
+      key: key,
+      widget: widget,
+      globalKey: GlobalKey(),
+    )..state = ChildAnimationState.idle;
   }
 }
