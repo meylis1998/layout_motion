@@ -20,7 +20,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  layout_motion: ^0.3.0
+  layout_motion: ^0.3.1
 ```
 
 ## Usage
@@ -68,6 +68,24 @@ MotionLayout(
 )
 ```
 
+### Stack
+
+```dart
+MotionLayout(
+  child: Stack(
+    children: [
+      for (final item in items)
+        Positioned(
+          key: ValueKey(item.id),
+          left: item.x,
+          top: item.y,
+          child: Text(item.name),
+        ),
+    ],
+  ),
+)
+```
+
 ### Supported Layouts
 
 - `Column`
@@ -89,7 +107,7 @@ v0.2.0 renamed the scale transition parameters for consistency:
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `child` | `Widget` | required | A `Column`, `Row`, `Wrap`, or `Stack` |
-| `duration` | `Duration` | 300ms | Animation duration |
+| `duration` | `Duration` | 300ms | Move animation duration (fallback for enter/exit transitions) |
 | `curve` | `Curve` | `Curves.easeInOut` | Animation curve |
 | `enterTransition` | `MotionTransition?` | `FadeIn()` | Transition for entering children |
 | `exitTransition` | `MotionTransition?` | `FadeOut()` | Transition for exiting children |
