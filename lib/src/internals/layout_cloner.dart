@@ -23,6 +23,7 @@ class LayoutCloner {
         textDirection: original.textDirection,
         verticalDirection: original.verticalDirection,
         textBaseline: original.textBaseline,
+        spacing: original.spacing,
         children: newChildren,
       );
     }
@@ -36,6 +37,7 @@ class LayoutCloner {
         textDirection: original.textDirection,
         verticalDirection: original.verticalDirection,
         textBaseline: original.textBaseline,
+        spacing: original.spacing,
         children: newChildren,
       );
     }

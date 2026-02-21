@@ -12,3 +12,9 @@ doc/api/
 
 # macOS
 .DS_Store
+
+# Coverage
+coverage/
+
+# Claude Code
+.claude/

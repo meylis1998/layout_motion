@@ -98,7 +98,14 @@ class MotionLayoutState extends State<MotionLayout>
           'Found a ${child.runtimeType} without a key.',
         );
       }
-      newKeys.add(child.key!);
+      final key = child.key!;
+      if (newKeys.contains(key)) {
+        throw ArgumentError(
+          'MotionLayout: Duplicate key found: $key. '
+          'Each child must have a unique Key.',
+        );
+      }
+      newKeys.add(key);
     }
 
     final diff = ChildDiffer.diff(_previousKeys, newKeys);
@@ -473,11 +480,13 @@ class MotionLayoutState extends State<MotionLayout>
       final reversedAnimation = ReverseAnimation(
         entry.transitionCurvedAnimation!,
       );
-      child = IgnorePointer(
-        child: widget.effectiveExitTransition.build(
-          context,
-          reversedAnimation,
-          child,
+      child = ExcludeSemantics(
+        child: IgnorePointer(
+          child: widget.effectiveExitTransition.build(
+            context,
+            reversedAnimation,
+            child,
+          ),
         ),
       );
     }
@@ -501,6 +510,12 @@ class MotionLayoutState extends State<MotionLayout>
         );
       }
       final key = child.key!;
+      if (_previousKeys.contains(key)) {
+        throw ArgumentError(
+          'MotionLayout: Duplicate key found: $key. '
+          'Each child must have a unique Key.',
+        );
+      }
       _previousKeys.add(key);
       _entries[key] = AnimatedChildEntry.idle(key: key, widget: child);
     }

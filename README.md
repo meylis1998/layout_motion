@@ -12,6 +12,7 @@ Automatic FLIP layout animations for Flutter. Wrap any `Column`, `Row`, `Wrap`, 
 - **Add / Remove / Reorder** — all detected automatically via key-based diffing
 - **Customizable transitions** — built-in `FadeIn`/`FadeOut`, `SlideIn`/`SlideOut`, `ScaleIn`/`ScaleOut`
 - **Interruption-safe** — mid-animation changes produce smooth redirects
+- **Accessible** — exiting children are excluded from the semantic tree and pointer events
 - **Zero dependencies** — only depends on the Flutter SDK
 
 ## Getting Started
@@ -20,7 +21,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  layout_motion: ^0.3.1
+  layout_motion: ^0.3.2
 ```
 
 ## Usage
@@ -159,6 +160,8 @@ For large lists where you temporarily need to disable animations (e.g. during bu
 
 ## Accessibility
 
+### Reduced Motion
+
 Respect user preferences for reduced motion by integrating with `MediaQuery.disableAnimations`:
 
 ```dart
@@ -169,6 +172,10 @@ MotionLayout(
 ```
 
 This disables all animations when the user has enabled "Reduce motion" in their system accessibility settings.
+
+### Screen Readers
+
+Exiting children are automatically wrapped in `ExcludeSemantics` and `IgnorePointer`, so screen readers skip disappearing elements and users cannot interact with them during exit animations.
 
 ## How It Works
 

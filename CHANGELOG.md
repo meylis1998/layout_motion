@@ -1,3 +1,11 @@
+## 0.3.2
+
+- **FIX:** Preserve `spacing` property when cloning `Column` and `Row` (Flutter 3.27+)
+- **FIX:** Detect duplicate keys and throw `ArgumentError` instead of silently corrupting state
+- Wrap exiting children in `ExcludeSemantics` so screen readers skip disappearing elements
+- Add shared test helpers (`TestColumnApp`, `TestRowApp`) and new tests for spacing, duplicate keys, semantics, clipBehavior, and enabled toggling
+- Add `.claude/` and `coverage/` to `.gitignore`; add `.claude/` and `.github/` to `.pubignore`
+
 ## 0.3.1
 
 - **FIX:** Dispose `CurvedAnimation` objects before their parent controllers to prevent listener leaks

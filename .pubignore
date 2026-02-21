@@ -1,2 +1,4 @@
 coverage/
 build/
+.claude/
+.github/
