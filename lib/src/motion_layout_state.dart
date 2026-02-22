@@ -4,10 +4,12 @@ import 'package:flutter/physics.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import 'exit_layout_behavior.dart';
 import 'internals/animated_child_entry.dart';
 import 'internals/child_differ.dart';
 import 'internals/layout_cloner.dart';
 import 'internals/layout_snapshot.dart';
+import 'internals/drag_handler.dart';
 import 'motion_layout.dart';
 import 'stagger.dart';
 
@@ -54,6 +56,15 @@ class MotionLayoutState extends State<MotionLayout>
 
   /// Number of currently active animations (for lifecycle callbacks).
   int _activeAnimationCount = 0;
+
+  /// Drag handler for reorder support. Created when onReorder is non-null.
+  MotionDragHandler? _dragHandler;
+
+  /// Snapshot map captured at drag start for computing target indices.
+  Map<Key, ChildSnapshot> _dragSnapshots = {};
+
+  /// The keys in their current visual order during a drag operation.
+  List<Key> _dragOrderedKeys = [];
 
   // ---------------------------------------------------------------------------
   // Reduced-motion auto-detection (Feature 4)
@@ -116,12 +127,24 @@ class MotionLayoutState extends State<MotionLayout>
   void didUpdateWidget(covariant MotionLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    // Sync drag handler with onReorder availability.
+    _syncDragHandler();
+
     if (!_effectiveEnabled || widget.duration == Duration.zero) {
       _handleInstantUpdate();
       return;
     }
 
     _handleAnimatedUpdate();
+  }
+
+  void _syncDragHandler() {
+    if (widget.onReorder != null) {
+      _dragHandler ??= MotionDragHandler();
+    } else {
+      _dragHandler?.reset();
+      _dragHandler = null;
+    }
   }
 
   void _handleInstantUpdate() {
@@ -176,6 +199,16 @@ class MotionLayoutState extends State<MotionLayout>
     final diff = ChildDiffer.diff(_previousKeys, newKeys);
 
     // --- Process removed children → start exit (with stagger) ---
+    // In pop mode, capture absolute positions before starting exit.
+    if (widget.exitLayoutBehavior == ExitLayoutBehavior.pop) {
+      for (final key in diff.removed) {
+        final entry = _entries[key];
+        if (entry != null && entry.beforeSnapshot != null) {
+          entry.exitAbsoluteOffset = entry.beforeSnapshot!.offset;
+          entry.exitSize = entry.beforeSnapshot!.size;
+        }
+      }
+    }
     final removedList = diff.removed.toList();
     for (int i = 0; i < removedList.length; i++) {
       final key = removedList[i];
@@ -314,15 +347,18 @@ class MotionLayoutState extends State<MotionLayout>
 
     // Snap exiting children to their pre-removal visual position so they
     // don't jump to the end of the layout during the exit transition.
-    for (final entry in _entries.values) {
-      if (entry.state != ChildAnimationState.exiting) continue;
-      final before = entry.beforeSnapshot;
-      final after = afterSnapshots[entry.key];
-      if (before == null || after == null) continue;
+    // (Skip in pop mode — exiting children are positioned overlays.)
+    if (widget.exitLayoutBehavior != ExitLayoutBehavior.pop) {
+      for (final entry in _entries.values) {
+        if (entry.state != ChildAnimationState.exiting) continue;
+        final before = entry.beforeSnapshot;
+        final after = afterSnapshots[entry.key];
+        if (before == null || after == null) continue;
 
-      final delta = before.offset - after.offset;
-      entry.currentTranslationOffset = delta;
-      anyMoveStarted = true;
+        final delta = before.offset - after.offset;
+        entry.currentTranslationOffset = delta;
+        anyMoveStarted = true;
+      }
     }
 
     // Clear before snapshots.
@@ -408,6 +444,7 @@ class MotionLayoutState extends State<MotionLayout>
     });
 
     _incrementActiveAnimations();
+    widget.onChildMove?.call(entry.key);
 
     void doForward() {
       if (!mounted) return;
@@ -598,11 +635,14 @@ class MotionLayoutState extends State<MotionLayout>
 
     if (_isFirstBuild) {
       _initializeEntries();
+      _syncDragHandler();
       _isFirstBuild = false;
     }
 
-    // Build the merged children list: current children (wrapped) + exiting children.
+    // Build the merged children list.
     final mergedChildren = <Widget>[];
+    final exitingOverlays = <Widget>[];
+    final isPop = widget.exitLayoutBehavior == ExitLayoutBehavior.pop;
 
     // Determine the order: follow _previousKeys for ordering, then append exiting.
     final builtKeys = <Key>{};
@@ -614,20 +654,71 @@ class MotionLayoutState extends State<MotionLayout>
       mergedChildren.add(_buildChild(entry));
     }
 
-    // Add exiting children that aren't in _previousKeys.
+    // Add exiting children — in pop mode, collect as positioned overlays;
+    // in maintain mode, append to the cloned layout as before.
     for (final entry in _entries.values) {
       if (!builtKeys.contains(entry.key) &&
           entry.state == ChildAnimationState.exiting) {
-        mergedChildren.add(_buildChild(entry));
+        if (isPop && entry.exitAbsoluteOffset != null) {
+          exitingOverlays.add(_buildPopExitChild(entry));
+        } else {
+          mergedChildren.add(_buildChild(entry));
+        }
       }
     }
 
     final cloned = LayoutCloner.cloneWithChildren(widget.child, mergedChildren);
+    Widget output = KeyedSubtree(key: _parentKey, child: cloned);
 
-    return ClipRect(
-      clipBehavior: widget.clipBehavior,
-      child: KeyedSubtree(key: _parentKey, child: cloned),
-    );
+    // In pop mode, wrap in a Stack with exiting children as positioned overlays.
+    if (isPop && exitingOverlays.isNotEmpty) {
+      output = Stack(
+        clipBehavior: Clip.none,
+        children: [output, ...exitingOverlays],
+      );
+    }
+
+    // Wrap in drag listener when reorder is enabled.
+    if (_dragHandler != null) {
+      output = _wrapWithDragListener(output);
+    }
+
+    // Render floating drag proxy during drag.
+    if (_dragHandler != null && _dragHandler!.isDragging) {
+      final dragEntry = _entries[_dragHandler!.draggedKey];
+      if (dragEntry != null) {
+        final parentRenderBox = _getParentRenderBox();
+        // Build a keyless copy of the child for the drag proxy to avoid
+        // duplicate keys in the widget tree.
+        Widget dragProxy = _buildDragProxy(dragEntry);
+        final dragSnap = _dragSnapshots[_dragHandler!.draggedKey];
+
+        // Apply decorator or default elevation.
+        if (widget.dragDecorator != null) {
+          dragProxy = widget.dragDecorator!(dragProxy);
+        }
+
+        final dragOffset = parentRenderBox != null
+            ? _dragHandler!.dragLocalOffset(parentRenderBox)
+            : Offset.zero;
+
+        output = Stack(
+          clipBehavior: Clip.none,
+          children: [
+            output,
+            Positioned(
+              left: dragOffset.dx,
+              top: dragOffset.dy,
+              width: dragSnap?.size.width,
+              height: dragSnap?.size.height,
+              child: IgnorePointer(child: dragProxy),
+            ),
+          ],
+        );
+      }
+    }
+
+    return ClipRect(clipBehavior: widget.clipBehavior, child: output);
   }
 
   Widget _buildChild(AnimatedChildEntry entry) {
@@ -640,8 +731,20 @@ class MotionLayoutState extends State<MotionLayout>
         : null;
     final innerWidget = positioned?.child ?? entry.widget;
 
+    // During drag, render a transparent placeholder for the dragged child
+    // so that it maintains its space in the layout.
+    final isDragged =
+        _dragHandler != null &&
+        _dragHandler!.isDragging &&
+        entry.key == _dragHandler!.draggedKey;
+
     // Inner wrapper with GlobalKey for RenderBox position tracking.
-    Widget child = KeyedSubtree(key: entry.globalKey, child: innerWidget);
+    Widget child = KeyedSubtree(
+      key: entry.globalKey,
+      child: isDragged
+          ? Opacity(opacity: 0.0, child: innerWidget)
+          : innerWidget,
+    );
 
     // Apply move transform.
     // When an active move animation exists, use AnimatedBuilder to scope
@@ -702,11 +805,276 @@ class MotionLayoutState extends State<MotionLayout>
       );
     }
 
+    // Wrap with long-press gesture detector for drag-to-reorder.
+    if (_dragHandler != null &&
+        entry.state != ChildAnimationState.exiting &&
+        !isDragged) {
+      child = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onLongPressStart: (details) {
+          handleLongPressStart(details.globalPosition);
+        },
+        child: child,
+      );
+    }
+
     // Outer wrapper keyed with a _MotionChildKey so Column/Row/Wrap can
     // properly reconcile old and new children — this prevents GlobalKey
     // conflicts when the inner nesting depth changes (e.g., idle → exiting
     // adds wrappers). Using _MotionChildKey avoids duplicating the user's key.
     return KeyedSubtree(key: _MotionChildKey(entry.key), child: child);
+  }
+
+  /// Builds a keyless copy of a child widget for the floating drag proxy.
+  /// Strips the user's key to avoid duplicate key conflicts in the tree.
+  static Widget _buildDragProxy(AnimatedChildEntry entry) {
+    final w = entry.widget is Positioned
+        ? (entry.widget as Positioned).child
+        : entry.widget;
+    // Use SizedBox as a neutral wrapper that won't carry the user's key.
+    return SizedBox(child: w);
+  }
+
+  /// Builds an exiting child as a positioned overlay for pop exit mode.
+  Widget _buildPopExitChild(AnimatedChildEntry entry) {
+    Widget child = KeyedSubtree(key: entry.globalKey, child: entry.widget);
+
+    // Apply exit transition.
+    if (entry.transitionCurvedAnimation != null) {
+      final reversedAnimation = ReverseAnimation(
+        entry.transitionCurvedAnimation!,
+      );
+      child = ExcludeSemantics(
+        child: IgnorePointer(
+          child: widget.effectiveExitTransition.build(
+            context,
+            reversedAnimation,
+            child,
+          ),
+        ),
+      );
+    }
+
+    return Positioned(
+      key: _MotionChildKey(entry.key),
+      left: entry.exitAbsoluteOffset!.dx,
+      top: entry.exitAbsoluteOffset!.dy,
+      width: entry.exitSize?.width,
+      height: entry.exitSize?.height,
+      child: child,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drag-to-reorder
+  // ---------------------------------------------------------------------------
+
+  Widget _wrapWithDragListener(Widget child) {
+    return Listener(
+      onPointerMove: _handleDragPointerMove,
+      onPointerUp: _handleDragPointerUp,
+      onPointerCancel: _handleDragPointerCancel,
+      child: child,
+    );
+  }
+
+  /// Hit-tests children to find which one was long-pressed.
+  void handleLongPressStart(Offset globalPosition) {
+    if (_dragHandler == null || !_effectiveEnabled) return;
+
+    final parentRenderBox = _getParentRenderBox();
+    if (parentRenderBox == null) return;
+
+    final localPos = parentRenderBox.globalToLocal(globalPosition);
+
+    // Capture current snapshots for all non-exiting children.
+    final keyMap = <Key, GlobalKey>{};
+    for (final key in _previousKeys) {
+      final entry = _entries[key];
+      if (entry != null && entry.state != ChildAnimationState.exiting) {
+        keyMap[entry.key] = entry.globalKey;
+      }
+    }
+    _dragSnapshots = LayoutSnapshotManager.capture(
+      keyMap: keyMap,
+      ancestor: parentRenderBox,
+    );
+
+    // Find the child under the pointer.
+    for (int i = 0; i < _previousKeys.length; i++) {
+      final key = _previousKeys[i];
+      final snap = _dragSnapshots[key];
+      if (snap == null) continue;
+
+      final rect = Rect.fromLTWH(
+        snap.offset.dx,
+        snap.offset.dy,
+        snap.size.width,
+        snap.size.height,
+      );
+      if (rect.contains(localPos)) {
+        final childLocalOffset = localPos - snap.offset;
+        _dragHandler!.start(
+          key: key,
+          index: i,
+          globalPosition: globalPosition,
+          childLocalOffset: childLocalOffset,
+        );
+        _dragOrderedKeys = List<Key>.from(_previousKeys);
+
+        // Capture before positions for FLIP on reorder.
+        _captureBeforePositions();
+
+        setState(() {});
+        return;
+      }
+    }
+  }
+
+  void _handleDragPointerMove(PointerMoveEvent event) {
+    if (_dragHandler == null || !_dragHandler!.isDragging) return;
+
+    _dragHandler!.updatePosition(event.position);
+
+    final parentRenderBox = _getParentRenderBox();
+    if (parentRenderBox == null) return;
+
+    final localPos = parentRenderBox.globalToLocal(event.position);
+
+    // Determine layout axis.
+    final isVertical = widget.child is Column;
+    final isWrap = widget.child is Wrap;
+
+    // Compute target index based on non-dragged children positions.
+    // Use the current _dragSnapshots (which reflect current visual positions).
+    final keysWithoutDragged = _dragOrderedKeys
+        .where((k) => k != _dragHandler!.draggedKey)
+        .toList();
+
+    final newIndex = _dragHandler!.computeTargetIndex(
+      localPosition: localPos,
+      orderedKeys: keysWithoutDragged,
+      snapshots: _dragSnapshots,
+      isVertical: isVertical,
+      isWrap: isWrap,
+    );
+
+    // Clamp to valid range.
+    final clampedIndex = newIndex.clamp(0, _dragOrderedKeys.length - 1);
+
+    if (clampedIndex != _dragHandler!.dragCurrentIndex) {
+      // Capture before positions.
+      _captureBeforePositions();
+
+      // Reorder _dragOrderedKeys.
+      final dragKey = _dragHandler!.draggedKey!;
+      _dragOrderedKeys.remove(dragKey);
+      _dragOrderedKeys.insert(clampedIndex, dragKey);
+      _dragHandler!.dragCurrentIndex = clampedIndex;
+
+      // Update _previousKeys to reflect the new visual order.
+      _previousKeys = List<Key>.from(_dragOrderedKeys);
+
+      // Rebuild to get new layout positions.
+      setState(() {});
+
+      // Schedule FLIP after layout.
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _performDragFlip();
+      });
+    } else {
+      // Just update the floating proxy position.
+      setState(() {});
+    }
+  }
+
+  /// Performs FLIP animation for non-dragged children during drag reorder.
+  void _performDragFlip() {
+    final parentRenderBox = _getParentRenderBox();
+    if (parentRenderBox == null) return;
+
+    final keyMap = <Key, GlobalKey>{};
+    for (final entry in _entries.values) {
+      if (entry.state != ChildAnimationState.removed &&
+          entry.key != _dragHandler?.draggedKey) {
+        keyMap[entry.key] = entry.globalKey;
+      }
+    }
+
+    final afterSnapshots = LayoutSnapshotManager.capture(
+      keyMap: keyMap,
+      ancestor: parentRenderBox,
+    );
+
+    // Update _dragSnapshots with new positions for hit-testing.
+    _dragSnapshots.addAll(afterSnapshots);
+
+    bool anyMoveStarted = false;
+
+    for (final key in _previousKeys) {
+      if (key == _dragHandler?.draggedKey) continue;
+      final entry = _entries[key];
+      if (entry == null) continue;
+
+      final before = entry.beforeSnapshot;
+      final after = afterSnapshots[key];
+      if (before == null || after == null) continue;
+
+      final delta = before.offset - after.offset;
+      if (delta.dx.abs() < widget.moveThreshold &&
+          delta.dy.abs() < widget.moveThreshold) {
+        entry.currentTranslationOffset = Offset.zero;
+        continue;
+      }
+
+      _startMove(entry, delta);
+      anyMoveStarted = true;
+    }
+
+    for (final entry in _entries.values) {
+      entry.beforeSnapshot = null;
+    }
+
+    if (anyMoveStarted && mounted) {
+      setState(() {});
+    }
+  }
+
+  void _handleDragPointerUp(PointerUpEvent event) {
+    _finishDrag();
+  }
+
+  void _handleDragPointerCancel(PointerCancelEvent event) {
+    _cancelDrag();
+  }
+
+  void _finishDrag() {
+    if (_dragHandler == null || !_dragHandler!.isDragging) return;
+
+    final originalIndex = _dragHandler!.dragOriginalIndex;
+    final finalIndex = _dragHandler!.dragCurrentIndex;
+
+    _dragHandler!.reset();
+    _dragSnapshots = {};
+    _dragOrderedKeys = [];
+
+    setState(() {});
+
+    if (originalIndex != finalIndex) {
+      widget.onReorder?.call(originalIndex, finalIndex);
+    }
+  }
+
+  void _cancelDrag() {
+    if (_dragHandler == null || !_dragHandler!.isDragging) return;
+
+    // Restore original order.
+    _dragHandler!.reset();
+    _dragSnapshots = {};
+    _dragOrderedKeys = [];
+
+    setState(() {});
   }
 
   void _initializeEntries() {

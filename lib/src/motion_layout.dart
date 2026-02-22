@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'exit_layout_behavior.dart';
 import 'motion_layout_state.dart';
 import 'motion_spring.dart';
 import 'stagger.dart';
@@ -51,6 +52,10 @@ class MotionLayout extends StatefulWidget {
     this.moveCurve,
     this.enterCurve,
     this.exitCurve,
+    this.onChildMove,
+    this.exitLayoutBehavior = ExitLayoutBehavior.maintain,
+    this.onReorder,
+    this.dragDecorator,
   }) : assert(moveThreshold > 0, 'moveThreshold must be greater than 0'),
        assert(
          child is Column || child is Row || child is Wrap || child is Stack,
@@ -151,6 +156,29 @@ class MotionLayout extends StatefulWidget {
   ///
   /// When null, falls back to [curve].
   final Curve? exitCurve;
+
+  /// Called when a specific child begins its move animation.
+  final ValueChanged<Key>? onChildMove;
+
+  /// How exiting children affect the layout during their exit animation.
+  ///
+  /// Defaults to [ExitLayoutBehavior.maintain] (current behavior: exiting
+  /// children remain in layout flow). Set to [ExitLayoutBehavior.pop] to
+  /// immediately remove exiting children from flow while they animate out
+  /// at their last known absolute position.
+  final ExitLayoutBehavior exitLayoutBehavior;
+
+  /// Called when children are reordered via drag.
+  ///
+  /// When non-null, children become reorderable via long-press drag.
+  /// The callback receives the old and new indices of the dragged child.
+  final void Function(int oldIndex, int newIndex)? onReorder;
+
+  /// Optional decorator for the dragged child during reorder.
+  ///
+  /// Receives the child widget and returns a decorated version.
+  /// Defaults to adding a slight elevation effect.
+  final Widget Function(Widget child)? dragDecorator;
 
   /// The effective move curve, falling back to [curve].
   Curve get effectiveMoveCurve => moveCurve ?? curve;

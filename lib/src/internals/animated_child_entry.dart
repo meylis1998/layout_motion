@@ -66,6 +66,14 @@ class AnimatedChildEntry {
   /// be accounted for in the new "before" position.
   Offset currentTranslationOffset = Offset.zero;
 
+  /// The absolute offset for pop exit mode. When exitLayoutBehavior is pop,
+  /// this stores the child's position relative to the parent so it can be
+  /// rendered as a positioned overlay while it animates out.
+  Offset? exitAbsoluteOffset;
+
+  /// The size captured when exiting in pop mode, used for the positioned overlay.
+  Size? exitSize;
+
   /// Timer used for staggered animation delays. When a stagger delay is
   /// applied, the controller.forward() call is deferred until this timer fires.
   Timer? _staggerTimer;

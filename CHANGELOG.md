@@ -1,3 +1,10 @@
+## 0.5.0
+
+- **NEW:** Drag-to-Reorder — long-press and drag children to reorder with smooth FLIP animations for siblings. Set `onReorder` to enable. Customize the dragged child appearance with `dragDecorator`.
+- **NEW:** `ExitLayoutBehavior.pop` — exiting children are immediately removed from layout flow and animate out as positioned overlays. Remaining children slide into freed space instantly. Set `exitLayoutBehavior: ExitLayoutBehavior.pop` to enable.
+- **NEW:** `onChildMove` callback — fires when a child begins its move animation, completing the lifecycle callback set alongside `onChildEnter` and `onChildExit`.
+- Add Drag-to-Reorder and Pop Exit Mode demos to example app
+
 ## 0.4.0
 
 - **NEW:** Staggered animations — cascading delays with `staggerDuration` and `staggerFrom` (`first`, `last`, `center`)

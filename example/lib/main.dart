@@ -99,6 +99,23 @@ class DemoSelector extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const AdvancedOptionsDemo()),
             ),
           ),
+          const Divider(),
+          ListTile(
+            title: const Text('Drag-to-Reorder'),
+            subtitle: const Text('Long-press and drag to reorder with FLIP'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DragReorderDemo()),
+            ),
+          ),
+          ListTile(
+            title: const Text('Pop Exit Mode'),
+            subtitle: const Text('Exiting children leave layout flow instantly'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PopExitDemo()),
+            ),
+          ),
         ],
       ),
     );
@@ -1219,6 +1236,207 @@ class _AdvancedOptionsDemoState extends State<AdvancedOptionsDemo> {
                 transitionDuration: transitionDuration,
                 enterTransition: const SlideIn(offset: Offset(0, 0.15)),
                 exitTransition: const FadeOut(),
+                child: Column(
+                  children: [
+                    for (final id in _items)
+                      Card(
+                        key: ValueKey(id),
+                        color: Colors.primaries[id % Colors.primaries.length]
+                            .withValues(alpha: 0.25),
+                        child: ListTile(
+                          leading: CircleAvatar(child: Text('$id')),
+                          title: Text('Item $id'),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => _removeItem(id),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo 10: Drag-to-Reorder — Long-press and drag to reorder items with FLIP
+// ---------------------------------------------------------------------------
+class DragReorderDemo extends StatefulWidget {
+  const DragReorderDemo({super.key});
+
+  @override
+  State<DragReorderDemo> createState() => _DragReorderDemoState();
+}
+
+class _DragReorderDemoState extends State<DragReorderDemo> {
+  var _items = List.generate(6, (i) => i + 1);
+  int _nextId = 7;
+
+  void _addItem() {
+    setState(() {
+      _items.add(_nextId++);
+    });
+  }
+
+  void _removeItem(int id) {
+    setState(() {
+      _items.remove(id);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Drag-to-Reorder'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.remove),
+            tooltip: 'Remove Last',
+            onPressed: _items.isNotEmpty
+                ? () => _removeItem(_items.last)
+                : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add',
+            onPressed: _addItem,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: MotionLayout(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+          enterTransition: const FadeSlideIn(),
+          exitTransition: const FadeOut(),
+          onReorder: (oldIndex, newIndex) {
+            setState(() {
+              final item = _items.removeAt(oldIndex);
+              _items.insert(newIndex, item);
+            });
+          },
+          dragDecorator: (child) {
+            return Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(12),
+              child: child,
+            );
+          },
+          child: Column(
+            children: [
+              for (final id in _items)
+                Card(
+                  key: ValueKey(id),
+                  color: Colors.primaries[id % Colors.primaries.length]
+                      .withValues(alpha: 0.25),
+                  child: ListTile(
+                    leading: CircleAvatar(child: Text('$id')),
+                    title: Text('Item $id'),
+                    subtitle: const Text('Long-press to drag'),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => _removeItem(id),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo 11: Pop Exit Mode — Exiting children leave layout flow instantly
+// ---------------------------------------------------------------------------
+class PopExitDemo extends StatefulWidget {
+  const PopExitDemo({super.key});
+
+  @override
+  State<PopExitDemo> createState() => _PopExitDemoState();
+}
+
+class _PopExitDemoState extends State<PopExitDemo> {
+  final _items = <int>[1, 2, 3, 4, 5];
+  int _nextId = 6;
+  ExitLayoutBehavior _behavior = ExitLayoutBehavior.pop;
+
+  void _addItem() {
+    setState(() {
+      _items.add(_nextId++);
+    });
+  }
+
+  void _removeItem(int id) {
+    setState(() {
+      _items.remove(id);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pop Exit Mode'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.remove),
+            tooltip: 'Remove Last',
+            onPressed: _items.isNotEmpty
+                ? () => _removeItem(_items.last)
+                : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add',
+            onPressed: _addItem,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Card(
+            margin: const EdgeInsets.all(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListTile(
+                title: const Text('Exit Layout Behavior'),
+                trailing: SegmentedButton<ExitLayoutBehavior>(
+                  segments: const [
+                    ButtonSegment(
+                      value: ExitLayoutBehavior.maintain,
+                      label: Text('Maintain'),
+                    ),
+                    ButtonSegment(
+                      value: ExitLayoutBehavior.pop,
+                      label: Text('Pop'),
+                    ),
+                  ],
+                  selected: {_behavior},
+                  onSelectionChanged: (v) {
+                    setState(() => _behavior = v.first);
+                  },
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: MotionLayout(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOutCubic,
+                enterTransition: const FadeSlideIn(),
+                exitTransition: const FadeOut(),
+                exitLayoutBehavior: _behavior,
                 child: Column(
                   children: [
                     for (final id in _items)

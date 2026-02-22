@@ -1,3 +1,4 @@
+export 'src/exit_layout_behavior.dart';
 export 'src/motion_layout.dart';
 export 'src/motion_spring.dart';
 export 'src/stagger.dart';

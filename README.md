@@ -14,7 +14,9 @@ Automatic FLIP layout animations for Flutter. Wrap any `Column`, `Row`, `Wrap`, 
 - **Spring physics** — physics-based move animations with named presets
 - **Transition composition** — combine transitions with `+` operator: `FadeIn() + SlideIn()`
 - **Per-child curves** — separate curves for move, enter, and exit animations
-- **Lifecycle callbacks** — `onAnimationStart`, `onAnimationComplete`, `onChildEnter`, `onChildExit`
+- **Drag-to-reorder** — long-press and drag to reorder with smooth FLIP animations
+- **Pop exit mode** — exiting children leave layout flow instantly while animating out
+- **Lifecycle callbacks** — `onAnimationStart`, `onAnimationComplete`, `onChildEnter`, `onChildExit`, `onChildMove`
 - **Auto reduced motion** — respects system accessibility settings by default
 - **Customizable transitions** — built-in presets plus easy custom transitions
 - **Interruption-safe** — mid-animation changes produce smooth redirects
@@ -27,7 +29,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  layout_motion: ^0.4.0
+  layout_motion: ^0.5.0
 ```
 
 ## Usage
@@ -123,6 +125,36 @@ MotionLayout(
 )
 ```
 
+### Drag-to-Reorder
+
+```dart
+MotionLayout(
+  onReorder: (int oldIndex, int newIndex) {
+    setState(() {
+      final item = items.removeAt(oldIndex);
+      items.insert(newIndex, item);
+    });
+  },
+  dragDecorator: (Widget child) {
+    return Material(elevation: 8, borderRadius: BorderRadius.circular(12), child: child);
+  },
+  child: Column(children: [...]),
+)
+```
+
+When `onReorder` is non-null, children become reorderable via long-press drag. Non-dragged children animate smoothly via FLIP as the insertion point changes.
+
+### Pop Exit Mode
+
+```dart
+MotionLayout(
+  exitLayoutBehavior: ExitLayoutBehavior.pop,
+  child: Column(children: [...]),
+)
+```
+
+In `pop` mode, exiting children are immediately removed from the layout flow and animate out at their last known position as an overlay. Remaining children slide into the freed space instantly.
+
 ### Row
 
 ```dart
@@ -205,6 +237,10 @@ v0.2.0 renamed the scale transition parameters for consistency:
 | `onAnimationComplete` | `VoidCallback?` | `null` | Called when all animations complete |
 | `onChildEnter` | `ValueChanged<Key>?` | `null` | Called when a child begins entering |
 | `onChildExit` | `ValueChanged<Key>?` | `null` | Called when a child begins exiting |
+| `onChildMove` | `ValueChanged<Key>?` | `null` | Called when a child begins moving |
+| `exitLayoutBehavior` | `ExitLayoutBehavior` | `.maintain` | How exiting children affect layout (`.maintain` or `.pop`) |
+| `onReorder` | `void Function(int, int)?` | `null` | Called on drag-reorder with old and new indices. Enables drag when non-null. |
+| `dragDecorator` | `Widget Function(Widget)?` | `null` | Decorates the floating drag proxy during reorder |
 
 ### MotionSpring
 
