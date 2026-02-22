@@ -110,7 +110,9 @@ class DemoSelector extends StatelessWidget {
           ),
           ListTile(
             title: const Text('Pop Exit Mode'),
-            subtitle: const Text('Exiting children leave layout flow instantly'),
+            subtitle: const Text(
+              'Exiting children leave layout flow instantly',
+            ),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PopExitDemo()),
@@ -674,10 +676,10 @@ class _StaggerSpringDemoState extends State<StaggerSpringDemo> {
                         _spring == MotionSpring.gentle
                             ? 'gentle'
                             : _spring == MotionSpring.smooth
-                                ? 'smooth'
-                                : _spring == MotionSpring.bouncy
-                                    ? 'bouncy'
-                                    : 'stiff',
+                            ? 'smooth'
+                            : _spring == MotionSpring.bouncy
+                            ? 'bouncy'
+                            : 'stiff',
                       },
                       onSelectionChanged: (v) {
                         setState(() {
@@ -726,8 +728,7 @@ class _StaggerSpringDemoState extends State<StaggerSpringDemo> {
                       divisions: 20,
                       value: _staggerMs.toDouble(),
                       label: '${_staggerMs}ms',
-                      onChanged: (v) =>
-                          setState(() => _staggerMs = v.round()),
+                      onChanged: (v) => setState(() => _staggerMs = v.round()),
                     ),
                   ),
                 ],
@@ -788,28 +789,28 @@ class _CompositionDemoState extends State<CompositionDemo> {
   String _exitPreset = 'fadeScale';
 
   MotionTransition get _enterTransition => switch (_enterPreset) {
-        'fade' => const FadeIn(),
-        'slide' => const SlideIn(),
-        'scale' => const ScaleIn(),
-        'fadeSlide' => const FadeSlideIn(),
-        'fadeScale' => const FadeScaleIn(),
-        'size' => const SizeIn(),
-        'fadeSlideScale' =>
-          const FadeIn() + const SlideIn() + const ScaleIn(scale: 0.9),
-        _ => const FadeIn(),
-      };
+    'fade' => const FadeIn(),
+    'slide' => const SlideIn(),
+    'scale' => const ScaleIn(),
+    'fadeSlide' => const FadeSlideIn(),
+    'fadeScale' => const FadeScaleIn(),
+    'size' => const SizeIn(),
+    'fadeSlideScale' =>
+      const FadeIn() + const SlideIn() + const ScaleIn(scale: 0.9),
+    _ => const FadeIn(),
+  };
 
   MotionTransition get _exitTransition => switch (_exitPreset) {
-        'fade' => const FadeOut(),
-        'slide' => const SlideOut(),
-        'scale' => const ScaleOut(),
-        'fadeSlide' => const FadeSlideOut(),
-        'fadeScale' => const FadeScaleOut(),
-        'size' => const SizeOut(),
-        'fadeSlideScale' =>
-          const FadeOut() + const SlideOut() + const ScaleOut(scale: 0.9),
-        _ => const FadeOut(),
-      };
+    'fade' => const FadeOut(),
+    'slide' => const SlideOut(),
+    'scale' => const ScaleOut(),
+    'fadeSlide' => const FadeSlideOut(),
+    'fadeScale' => const FadeScaleOut(),
+    'size' => const SizeOut(),
+    'fadeSlideScale' =>
+      const FadeOut() + const SlideOut() + const ScaleOut(scale: 0.9),
+    _ => const FadeOut(),
+  };
 
   void _addItem() {
     setState(() => _items.add(_nextId++));
