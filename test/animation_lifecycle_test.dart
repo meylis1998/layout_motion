@@ -24,9 +24,7 @@ void main() {
             // Remove items.
             items = List.generate(5 + (cycle % 3), (i) => 'item-$i');
           }
-          await tester.pumpWidget(
-            TestColumnApp(items: items, itemHeight: 8),
-          );
+          await tester.pumpWidget(TestColumnApp(items: items, itemHeight: 8));
           // Advance just one frame — no settling.
           await tester.pump(const Duration(milliseconds: 1));
         }
@@ -88,24 +86,18 @@ void main() {
       testWidgets('re-adding a key during exit recovers smoothly', (
         tester,
       ) async {
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'b', 'c']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'b', 'c']));
         await tester.pumpAndSettle();
 
         // Remove 'b' — starts exit animation.
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'c']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'c']));
         await tester.pump(const Duration(milliseconds: 100));
 
         // 'b' should still be visible (exit in progress).
         expect(find.byKey(const ValueKey('b')), findsOneWidget);
 
         // Re-add 'b' before exit completes.
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'b', 'c']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'b', 'c']));
         await tester.pump(const Duration(milliseconds: 50));
 
         expect(tester.takeException(), isNull);
@@ -120,23 +112,17 @@ void main() {
       testWidgets('rapid exit-then-re-add cycles on the same key', (
         tester,
       ) async {
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'b', 'c']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'b', 'c']));
         await tester.pumpAndSettle();
 
         // Cycle 'b' in and out rapidly 10 times.
         for (var i = 0; i < 10; i++) {
           // Remove 'b'.
-          await tester.pumpWidget(
-            const TestColumnApp(items: ['a', 'c']),
-          );
+          await tester.pumpWidget(const TestColumnApp(items: ['a', 'c']));
           await tester.pump(const Duration(milliseconds: 30));
 
           // Re-add 'b'.
-          await tester.pumpWidget(
-            const TestColumnApp(items: ['a', 'b', 'c']),
-          );
+          await tester.pumpWidget(const TestColumnApp(items: ['a', 'b', 'c']));
           await tester.pump(const Duration(milliseconds: 30));
         }
 
@@ -220,11 +206,10 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('dispose immediately after triggering animations (no pump)',
-          (tester) async {
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'b', 'c']),
-        );
+      testWidgets('dispose immediately after triggering animations (no pump)', (
+        tester,
+      ) async {
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'b', 'c']));
         await tester.pumpAndSettle();
 
         // Trigger animation.
@@ -246,23 +231,17 @@ void main() {
     });
 
     group('Enter interrupted by new enter', () {
-      testWidgets('replacing all items before enter completes', (
-        tester,
-      ) async {
+      testWidgets('replacing all items before enter completes', (tester) async {
         // Start empty.
         await tester.pumpWidget(const TestColumnApp(items: []));
         await tester.pumpAndSettle();
 
         // Add items — triggers enter animations.
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'b', 'c']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'b', 'c']));
         await tester.pump(const Duration(milliseconds: 50));
 
         // Items are still entering — now replace all of them.
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['x', 'y', 'z']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['x', 'y', 'z']));
         await tester.pump(const Duration(milliseconds: 50));
 
         expect(tester.takeException(), isNull);
@@ -290,15 +269,11 @@ void main() {
       testWidgets('adding item then immediately adding more before settle', (
         tester,
       ) async {
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a']));
         await tester.pumpAndSettle();
 
         // Add 'b' — enter starts.
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'b']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'b']));
         await tester.pump(const Duration(milliseconds: 30));
 
         // Add 'c' and 'd' before 'b' finishes entering.
@@ -366,9 +341,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Wave 1: remove + add + reorder.
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['d', 'x', 'a']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['d', 'x', 'a']));
         await tester.pump(const Duration(milliseconds: 60));
 
         // Wave 2: another mixed update before wave 1 settles.
@@ -435,15 +408,10 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('switching from duration=0 back to normal', (
-        tester,
-      ) async {
+      testWidgets('switching from duration=0 back to normal', (tester) async {
         // Start with zero duration.
         await tester.pumpWidget(
-          const TestColumnApp(
-            items: ['a', 'b'],
-            duration: Duration.zero,
-          ),
+          const TestColumnApp(items: ['a', 'b'], duration: Duration.zero),
         );
         await tester.pump();
 
@@ -477,9 +445,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Trigger animations (reorder + exit + enter).
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['d', 'new1', 'b']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['d', 'new1', 'b']));
         await tester.pump(const Duration(milliseconds: 80));
 
         // Verify animations are in progress — exiting items still visible.
@@ -505,9 +471,7 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('re-enabling after disable works correctly', (
-        tester,
-      ) async {
+      testWidgets('re-enabling after disable works correctly', (tester) async {
         // Start disabled.
         await tester.pumpWidget(
           const TestColumnApp(items: ['a', 'b'], enabled: false),
@@ -530,19 +494,16 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('toggling enabled rapidly does not crash', (
-        tester,
-      ) async {
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'b', 'c']),
-        );
+      testWidgets('toggling enabled rapidly does not crash', (tester) async {
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'b', 'c']));
         await tester.pumpAndSettle();
 
         // Rapidly toggle enabled on/off with layout changes.
         for (var i = 0; i < 20; i++) {
           final enabled = i.isEven;
-          final items =
-              i % 3 == 0 ? ['a', 'b', 'c'] : ['c', 'b', 'a', 'item-$i'];
+          final items = i % 3 == 0
+              ? ['a', 'b', 'c']
+              : ['c', 'b', 'a', 'item-$i'];
           await tester.pumpWidget(
             TestColumnApp(items: items, enabled: enabled),
           );
@@ -606,9 +567,7 @@ void main() {
       testWidgets('enter/exit interruptions stress disposal queue', (
         tester,
       ) async {
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'b', 'c']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'b', 'c']));
         await tester.pumpAndSettle();
 
         // Rapidly cycle through different item sets to create many
@@ -628,9 +587,7 @@ void main() {
 
         for (var round = 0; round < 3; round++) {
           for (final itemSet in sets) {
-            await tester.pumpWidget(
-              TestColumnApp(items: itemSet),
-            );
+            await tester.pumpWidget(TestColumnApp(items: itemSet));
             await tester.pump(const Duration(milliseconds: 15));
           }
         }
@@ -664,24 +621,18 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('complete list reversal during active exit', (
-        tester,
-      ) async {
+      testWidgets('complete list reversal during active exit', (tester) async {
         await tester.pumpWidget(
           const TestColumnApp(items: ['a', 'b', 'c', 'd', 'e']),
         );
         await tester.pumpAndSettle();
 
         // Remove some items to trigger exits.
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'c', 'e']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'c', 'e']));
         await tester.pump(const Duration(milliseconds: 60));
 
         // While 'b' and 'd' are exiting, reverse the remaining list.
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['e', 'c', 'a']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['e', 'c', 'a']));
         await tester.pump(const Duration(milliseconds: 60));
 
         expect(tester.takeException(), isNull);
@@ -698,26 +649,20 @@ void main() {
 
       testWidgets('grow from zero to many to zero rapidly', (tester) async {
         // Use small itemHeight (8) so many items fit without overflow.
-        await tester.pumpWidget(
-          const TestColumnApp(items: [], itemHeight: 8),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: [], itemHeight: 8));
         await tester.pumpAndSettle();
 
         // Grow rapidly.
         for (var count = 1; count <= 20; count++) {
           final items = List.generate(count, (i) => 'item-$i');
-          await tester.pumpWidget(
-            TestColumnApp(items: items, itemHeight: 8),
-          );
+          await tester.pumpWidget(TestColumnApp(items: items, itemHeight: 8));
           await tester.pump(const Duration(milliseconds: 10));
         }
 
         // Shrink rapidly.
         for (var count = 19; count >= 0; count--) {
           final items = List.generate(count, (i) => 'item-$i');
-          await tester.pumpWidget(
-            TestColumnApp(items: items, itemHeight: 8),
-          );
+          await tester.pumpWidget(TestColumnApp(items: items, itemHeight: 8));
           await tester.pump(const Duration(milliseconds: 10));
         }
 
@@ -765,9 +710,7 @@ void main() {
       testWidgets('dispose with only exiting children (no current children)', (
         tester,
       ) async {
-        await tester.pumpWidget(
-          const TestColumnApp(items: ['a', 'b', 'c']),
-        );
+        await tester.pumpWidget(const TestColumnApp(items: ['a', 'b', 'c']));
         await tester.pumpAndSettle();
 
         // Remove all items — they are now exiting.

@@ -66,6 +66,31 @@ class DemoSelector extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const StackDemo()),
             ),
           ),
+          const Divider(),
+          ListTile(
+            title: const Text('Stagger + Spring'),
+            subtitle: const Text('Cascading spring-based animations'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const StaggerSpringDemo()),
+            ),
+          ),
+          ListTile(
+            title: const Text('Transition Composition'),
+            subtitle: const Text('Combine fade + slide + scale with operator+'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CompositionDemo()),
+            ),
+          ),
+          ListTile(
+            title: const Text('Lifecycle Callbacks'),
+            subtitle: const Text('React to animation start/complete events'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CallbacksDemo()),
+            ),
+          ),
           ListTile(
             title: const Text('Advanced Options'),
             subtitle: const Text('Toggle enabled, clip, threshold, timing'),
@@ -359,7 +384,10 @@ class _RowDemoState extends State<RowDemo> {
                   key: ValueKey(id),
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: ActionChip(
-                    avatar: CircleAvatar(child: Text('$id')),
+                    avatar: CircleAvatar(
+                      radius: 12,
+                      child: Text('$id', style: const TextStyle(fontSize: 11)),
+                    ),
                     label: Text('Item $id'),
                     onPressed: () => _removeItem(id),
                   ),
@@ -425,12 +453,14 @@ class _StackDemoState extends State<StackDemo> {
   void _addBox() {
     final id = _nextId++;
     setState(() {
-      _boxes.add(_StackBox(
-        id: id,
-        left: _rng.nextDouble() * (_stackWidth - _boxSize),
-        top: _rng.nextDouble() * (_stackHeight - _boxSize),
-        colorIndex: id % _colors.length,
-      ));
+      _boxes.add(
+        _StackBox(
+          id: id,
+          left: _rng.nextDouble() * (_stackWidth - _boxSize),
+          top: _rng.nextDouble() * (_stackHeight - _boxSize),
+          colorIndex: id % _colors.length,
+        ),
+      );
     });
   }
 
@@ -546,7 +576,494 @@ class _StackBox {
 }
 
 // ---------------------------------------------------------------------------
-// Demo 6: Advanced Options — Explore MotionLayout parameters interactively
+// Demo 6: Stagger + Spring — Cascading spring-based animations
+// ---------------------------------------------------------------------------
+class StaggerSpringDemo extends StatefulWidget {
+  const StaggerSpringDemo({super.key});
+
+  @override
+  State<StaggerSpringDemo> createState() => _StaggerSpringDemoState();
+}
+
+class _StaggerSpringDemoState extends State<StaggerSpringDemo> {
+  var _items = List.generate(6, (i) => i + 1);
+  int _nextId = 7;
+  MotionSpring _spring = MotionSpring.bouncy;
+  StaggerFrom _staggerFrom = StaggerFrom.first;
+  int _staggerMs = 50;
+
+  void _addItem() {
+    setState(() {
+      _items.add(_nextId++);
+    });
+  }
+
+  void _removeItem(int id) {
+    setState(() {
+      _items.remove(id);
+    });
+  }
+
+  void _shuffle() {
+    setState(() {
+      _items = List.of(_items)..shuffle(Random());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Stagger + Spring'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shuffle),
+            tooltip: 'Shuffle',
+            onPressed: _shuffle,
+          ),
+          IconButton(
+            icon: const Icon(Icons.remove),
+            tooltip: 'Remove Last',
+            onPressed: _items.isNotEmpty
+                ? () => _removeItem(_items.last)
+                : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add',
+            onPressed: _addItem,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Card(
+            margin: const EdgeInsets.all(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  // Spring preset selector.
+                  ListTile(
+                    title: const Text('Spring Preset'),
+                    trailing: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'gentle', label: Text('Gentle')),
+                        ButtonSegment(value: 'smooth', label: Text('Smooth')),
+                        ButtonSegment(value: 'bouncy', label: Text('Bouncy')),
+                        ButtonSegment(value: 'stiff', label: Text('Stiff')),
+                      ],
+                      selected: {
+                        _spring == MotionSpring.gentle
+                            ? 'gentle'
+                            : _spring == MotionSpring.smooth
+                                ? 'smooth'
+                                : _spring == MotionSpring.bouncy
+                                    ? 'bouncy'
+                                    : 'stiff',
+                      },
+                      onSelectionChanged: (v) {
+                        setState(() {
+                          _spring = switch (v.first) {
+                            'gentle' => MotionSpring.gentle,
+                            'smooth' => MotionSpring.smooth,
+                            'bouncy' => MotionSpring.bouncy,
+                            _ => MotionSpring.stiff,
+                          };
+                        });
+                      },
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Stagger direction selector.
+                  ListTile(
+                    title: const Text('Stagger From'),
+                    trailing: SegmentedButton<StaggerFrom>(
+                      segments: const [
+                        ButtonSegment(
+                          value: StaggerFrom.first,
+                          label: Text('First'),
+                        ),
+                        ButtonSegment(
+                          value: StaggerFrom.last,
+                          label: Text('Last'),
+                        ),
+                        ButtonSegment(
+                          value: StaggerFrom.center,
+                          label: Text('Center'),
+                        ),
+                      ],
+                      selected: {_staggerFrom},
+                      onSelectionChanged: (v) {
+                        setState(() => _staggerFrom = v.first);
+                      },
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // Stagger delay slider.
+                  ListTile(
+                    title: Text('Stagger Delay: ${_staggerMs}ms'),
+                    subtitle: Slider(
+                      min: 0,
+                      max: 200,
+                      divisions: 20,
+                      value: _staggerMs.toDouble(),
+                      label: '${_staggerMs}ms',
+                      onChanged: (v) =>
+                          setState(() => _staggerMs = v.round()),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: MotionLayout(
+                duration: const Duration(milliseconds: 600),
+                spring: _spring,
+                staggerDuration: Duration(milliseconds: _staggerMs),
+                staggerFrom: _staggerFrom,
+                enterTransition: const FadeSlideIn(),
+                exitTransition: const FadeOut(),
+                child: Column(
+                  children: [
+                    for (final id in _items)
+                      Card(
+                        key: ValueKey(id),
+                        color: Colors.primaries[id % Colors.primaries.length]
+                            .withValues(alpha: 0.25),
+                        child: ListTile(
+                          leading: CircleAvatar(child: Text('$id')),
+                          title: Text('Item $id'),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => _removeItem(id),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo 7: Transition Composition — Combine transitions with operator+
+// ---------------------------------------------------------------------------
+class CompositionDemo extends StatefulWidget {
+  const CompositionDemo({super.key});
+
+  @override
+  State<CompositionDemo> createState() => _CompositionDemoState();
+}
+
+class _CompositionDemoState extends State<CompositionDemo> {
+  final _items = <int>[1, 2, 3, 4, 5];
+  int _nextId = 6;
+  String _enterPreset = 'fadeSlide';
+  String _exitPreset = 'fadeScale';
+
+  MotionTransition get _enterTransition => switch (_enterPreset) {
+        'fade' => const FadeIn(),
+        'slide' => const SlideIn(),
+        'scale' => const ScaleIn(),
+        'fadeSlide' => const FadeSlideIn(),
+        'fadeScale' => const FadeScaleIn(),
+        'size' => const SizeIn(),
+        'fadeSlideScale' =>
+          const FadeIn() + const SlideIn() + const ScaleIn(scale: 0.9),
+        _ => const FadeIn(),
+      };
+
+  MotionTransition get _exitTransition => switch (_exitPreset) {
+        'fade' => const FadeOut(),
+        'slide' => const SlideOut(),
+        'scale' => const ScaleOut(),
+        'fadeSlide' => const FadeSlideOut(),
+        'fadeScale' => const FadeScaleOut(),
+        'size' => const SizeOut(),
+        'fadeSlideScale' =>
+          const FadeOut() + const SlideOut() + const ScaleOut(scale: 0.9),
+        _ => const FadeOut(),
+      };
+
+  void _addItem() {
+    setState(() => _items.add(_nextId++));
+  }
+
+  void _removeItem(int id) {
+    setState(() => _items.remove(id));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Transition Composition'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.remove),
+            tooltip: 'Remove Last',
+            onPressed: _items.isNotEmpty
+                ? () => _removeItem(_items.last)
+                : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add',
+            onPressed: _addItem,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Card(
+            margin: const EdgeInsets.all(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  ListTile(
+                    title: const Text('Enter Transition'),
+                    trailing: DropdownButton<String>(
+                      value: _enterPreset,
+                      onChanged: (v) => setState(() => _enterPreset = v!),
+                      items: const [
+                        DropdownMenuItem(value: 'fade', child: Text('Fade')),
+                        DropdownMenuItem(value: 'slide', child: Text('Slide')),
+                        DropdownMenuItem(value: 'scale', child: Text('Scale')),
+                        DropdownMenuItem(
+                          value: 'fadeSlide',
+                          child: Text('Fade + Slide'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'fadeScale',
+                          child: Text('Fade + Scale'),
+                        ),
+                        DropdownMenuItem(value: 'size', child: Text('Size')),
+                        DropdownMenuItem(
+                          value: 'fadeSlideScale',
+                          child: Text('Fade + Slide + Scale'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ListTile(
+                    title: const Text('Exit Transition'),
+                    trailing: DropdownButton<String>(
+                      value: _exitPreset,
+                      onChanged: (v) => setState(() => _exitPreset = v!),
+                      items: const [
+                        DropdownMenuItem(value: 'fade', child: Text('Fade')),
+                        DropdownMenuItem(value: 'slide', child: Text('Slide')),
+                        DropdownMenuItem(value: 'scale', child: Text('Scale')),
+                        DropdownMenuItem(
+                          value: 'fadeSlide',
+                          child: Text('Fade + Slide'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'fadeScale',
+                          child: Text('Fade + Scale'),
+                        ),
+                        DropdownMenuItem(value: 'size', child: Text('Size')),
+                        DropdownMenuItem(
+                          value: 'fadeSlideScale',
+                          child: Text('Fade + Slide + Scale'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: MotionLayout(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOutCubic,
+                enterTransition: _enterTransition,
+                exitTransition: _exitTransition,
+                child: Column(
+                  children: [
+                    for (final id in _items)
+                      Card(
+                        key: ValueKey(id),
+                        child: ListTile(
+                          leading: CircleAvatar(child: Text('$id')),
+                          title: Text('Item $id'),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => _removeItem(id),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo 8: Lifecycle Callbacks — React to animation events
+// ---------------------------------------------------------------------------
+class CallbacksDemo extends StatefulWidget {
+  const CallbacksDemo({super.key});
+
+  @override
+  State<CallbacksDemo> createState() => _CallbacksDemoState();
+}
+
+class _CallbacksDemoState extends State<CallbacksDemo> {
+  final _items = <int>[1, 2, 3];
+  int _nextId = 4;
+  bool _isAnimating = false;
+  final _log = <String>[];
+
+  void _addItem() {
+    setState(() => _items.add(_nextId++));
+  }
+
+  void _removeItem(int id) {
+    setState(() => _items.remove(id));
+  }
+
+  void _addLog(String msg) {
+    setState(() {
+      _log.insert(0, msg);
+      if (_log.length > 20) _log.removeLast();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            const Text('Callbacks'),
+            if (_isAnimating) ...[
+              const SizedBox(width: 12),
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep),
+            tooltip: 'Clear Log',
+            onPressed: () => setState(() => _log.clear()),
+          ),
+          IconButton(
+            icon: const Icon(Icons.remove),
+            tooltip: 'Remove Last',
+            onPressed: _items.isNotEmpty
+                ? () => _removeItem(_items.last)
+                : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add',
+            onPressed: _addItem,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            flex: 2,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: MotionLayout(
+                duration: const Duration(milliseconds: 400),
+                staggerDuration: const Duration(milliseconds: 40),
+                enterTransition: const FadeSlideIn(),
+                exitTransition: const FadeOut(),
+                onAnimationStart: () {
+                  _addLog('onAnimationStart');
+                  setState(() => _isAnimating = true);
+                },
+                onAnimationComplete: () {
+                  _addLog('onAnimationComplete');
+                  setState(() => _isAnimating = false);
+                },
+                onChildEnter: (key) => _addLog('onChildEnter: $key'),
+                onChildExit: (key) => _addLog('onChildExit: $key'),
+                child: Column(
+                  children: [
+                    for (final id in _items)
+                      Card(
+                        key: ValueKey(id),
+                        child: ListTile(
+                          title: Text('Item $id'),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => _removeItem(id),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            flex: 1,
+            child: Container(
+              color: Colors.grey.shade100,
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Event Log',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _log.length,
+                      itemBuilder: (context, index) {
+                        return Text(
+                          _log[index],
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo 9: Advanced Options — Explore MotionLayout parameters interactively
 // ---------------------------------------------------------------------------
 class AdvancedOptionsDemo extends StatefulWidget {
   const AdvancedOptionsDemo({super.key});
@@ -627,9 +1144,11 @@ class _AdvancedOptionsDemoState extends State<AdvancedOptionsDemo> {
                   // --- enabled toggle ---
                   SwitchListTile(
                     title: const Text('enabled'),
-                    subtitle: Text(_enabled
-                        ? 'Animations are active'
-                        : 'Animations disabled (instant layout)'),
+                    subtitle: Text(
+                      _enabled
+                          ? 'Animations are active'
+                          : 'Animations disabled (instant layout)',
+                    ),
                     value: _enabled,
                     onChanged: (v) => setState(() => _enabled = v),
                   ),
@@ -638,9 +1157,11 @@ class _AdvancedOptionsDemoState extends State<AdvancedOptionsDemo> {
                   // --- clipBehavior toggle ---
                   SwitchListTile(
                     title: const Text('clipBehavior'),
-                    subtitle: Text(_clipHardEdge
-                        ? 'Clip.hardEdge (clips overflow)'
-                        : 'Clip.none (overflow visible)'),
+                    subtitle: Text(
+                      _clipHardEdge
+                          ? 'Clip.hardEdge (clips overflow)'
+                          : 'Clip.none (overflow visible)',
+                    ),
                     value: _clipHardEdge,
                     onChanged: (v) => setState(() => _clipHardEdge = v),
                   ),
@@ -693,8 +1214,7 @@ class _AdvancedOptionsDemoState extends State<AdvancedOptionsDemo> {
                 duration: _moveDuration,
                 curve: Curves.easeOutCubic,
                 enabled: _enabled,
-                clipBehavior:
-                    _clipHardEdge ? Clip.hardEdge : Clip.none,
+                clipBehavior: _clipHardEdge ? Clip.hardEdge : Clip.none,
                 moveThreshold: _moveThreshold,
                 transitionDuration: transitionDuration,
                 enterTransition: const SlideIn(offset: Offset(0, 0.15)),

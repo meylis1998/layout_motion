@@ -63,36 +63,35 @@ void main() {
       },
     );
 
-    testWidgets(
-      'removed first item in Wrap stays at its original position',
-      (tester) async {
-        await tester.pumpWidget(const _WrapTestApp(items: ['a', 'b', 'c']));
-        await tester.pumpAndSettle();
+    testWidgets('removed first item in Wrap stays at its original position', (
+      tester,
+    ) async {
+      await tester.pumpWidget(const _WrapTestApp(items: ['a', 'b', 'c']));
+      await tester.pumpAndSettle();
 
-        final aBeforePos = tester.getTopLeft(find.byKey(const ValueKey('a')));
+      final aBeforePos = tester.getTopLeft(find.byKey(const ValueKey('a')));
 
-        // Remove A.
-        await tester.pumpWidget(const _WrapTestApp(items: ['b', 'c']));
-        await tester.pump();
+      // Remove A.
+      await tester.pumpWidget(const _WrapTestApp(items: ['b', 'c']));
+      await tester.pump();
 
-        expect(find.byKey(const ValueKey('a')), findsOneWidget);
+      expect(find.byKey(const ValueKey('a')), findsOneWidget);
 
-        final aDuringExit = tester.getTopLeft(find.byKey(const ValueKey('a')));
-        expect(
-          aDuringExit.dx,
-          moreOrLessEquals(aBeforePos.dx, epsilon: 1.0),
-          reason: 'Exiting item in Wrap should stay at its original X position',
-        );
-        expect(
-          aDuringExit.dy,
-          moreOrLessEquals(aBeforePos.dy, epsilon: 1.0),
-          reason: 'Exiting item in Wrap should stay at its original Y position',
-        );
+      final aDuringExit = tester.getTopLeft(find.byKey(const ValueKey('a')));
+      expect(
+        aDuringExit.dx,
+        moreOrLessEquals(aBeforePos.dx, epsilon: 1.0),
+        reason: 'Exiting item in Wrap should stay at its original X position',
+      );
+      expect(
+        aDuringExit.dy,
+        moreOrLessEquals(aBeforePos.dy, epsilon: 1.0),
+        reason: 'Exiting item in Wrap should stay at its original Y position',
+      );
 
-        await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('a')), findsNothing);
-      },
-    );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('a')), findsNothing);
+    });
   });
 }
 

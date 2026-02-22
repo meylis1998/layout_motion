@@ -1,3 +1,16 @@
+## 0.4.0
+
+- **NEW:** Staggered animations — cascading delays with `staggerDuration` and `staggerFrom` (`first`, `last`, `center`)
+- **NEW:** Animation lifecycle callbacks — `onAnimationStart`, `onAnimationComplete`, `onChildEnter`, `onChildExit`
+- **NEW:** Auto-detect reduced motion — `enabled` is now `bool?` (nullable); `null` (default) auto-reads `MediaQuery.disableAnimations`
+- **NEW:** Spring physics — `MotionSpring` class with presets (`gentle`, `smooth`, `bouncy`, `stiff`) for physics-based move animations
+- **NEW:** Per-child curve control — `moveCurve`, `enterCurve`, `exitCurve` override the global `curve` per animation type
+- **NEW:** Transition composition — use `operator+` to combine transitions: `const FadeIn() + const SlideIn()`
+- **NEW:** `FadeSlideIn`/`FadeSlideOut` — combined fade + slide preset
+- **NEW:** `FadeScaleIn`/`FadeScaleOut` — combined fade + scale preset
+- **NEW:** `SizeIn`/`SizeOut` — accordion/expand-collapse size transition
+- **BREAKING:** `enabled` parameter changed from `bool` (default `true`) to `bool?` (default `null`). Pass `enabled: true` to restore the previous behavior.
+
 ## 0.3.3
 
 - **FIX:** Snap exiting children to their pre-removal visual position so they don't jump during exit transitions
