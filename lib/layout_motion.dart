@@ -1,5 +1,11 @@
 export 'src/motion_layout.dart';
-export 'src/transitions/motion_transition.dart';
+export 'src/motion_spring.dart';
+export 'src/stagger.dart';
+export 'src/transitions/composed_transition.dart';
+export 'src/transitions/fade_scale_transition.dart';
+export 'src/transitions/fade_slide_transition.dart';
 export 'src/transitions/fade_transition.dart';
-export 'src/transitions/slide_transition.dart';
+export 'src/transitions/motion_transition.dart';
 export 'src/transitions/scale_transition.dart';
+export 'src/transitions/size_transition_preset.dart';
+export 'src/transitions/slide_transition.dart';

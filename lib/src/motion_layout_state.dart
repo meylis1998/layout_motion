@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/physics.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
@@ -6,6 +9,7 @@ import 'internals/child_differ.dart';
 import 'internals/layout_cloner.dart';
 import 'internals/layout_snapshot.dart';
 import 'motion_layout.dart';
+import 'stagger.dart';
 
 /// A private key type used to wrap each child at the top level of the
 /// Column/Row/Wrap so that Flutter's element reconciliation can match
@@ -48,11 +52,71 @@ class MotionLayoutState extends State<MotionLayout>
   /// during iteration).
   final Set<Key> _pendingRemovals = {};
 
+  /// Number of currently active animations (for lifecycle callbacks).
+  int _activeAnimationCount = 0;
+
+  // ---------------------------------------------------------------------------
+  // Reduced-motion auto-detection (Feature 4)
+  // ---------------------------------------------------------------------------
+
+  /// Resolves the effective [enabled] value, respecting system accessibility.
+  bool get _effectiveEnabled {
+    if (widget.enabled != null) return widget.enabled!;
+    final mq = MediaQuery.maybeOf(context);
+    if (mq == null) return true;
+    return !mq.disableAnimations;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Animation lifecycle callbacks (Feature 2)
+  // ---------------------------------------------------------------------------
+
+  void _incrementActiveAnimations() {
+    final wasZero = _activeAnimationCount == 0;
+    _activeAnimationCount++;
+    if (wasZero) {
+      widget.onAnimationStart?.call();
+    }
+  }
+
+  void _decrementActiveAnimations() {
+    _activeAnimationCount--;
+    if (_activeAnimationCount <= 0) {
+      _activeAnimationCount = 0;
+      widget.onAnimationComplete?.call();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Stagger computation (Feature 1)
+  // ---------------------------------------------------------------------------
+
+  Duration _computeStaggerDelay(int index, int total) {
+    if (widget.staggerDuration == Duration.zero || total <= 1) {
+      return Duration.zero;
+    }
+    final int staggerIndex;
+    switch (widget.staggerFrom) {
+      case StaggerFrom.first:
+        staggerIndex = index;
+      case StaggerFrom.last:
+        staggerIndex = total - 1 - index;
+      case StaggerFrom.center:
+        final center = (total - 1) / 2;
+        staggerIndex = (index - center).abs().round();
+    }
+    return widget.staggerDuration * staggerIndex;
+  }
+
+  // ---------------------------------------------------------------------------
+  // didUpdateWidget
+  // ---------------------------------------------------------------------------
+
   @override
   void didUpdateWidget(covariant MotionLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (!widget.enabled || widget.duration == Duration.zero) {
+    if (!_effectiveEnabled || widget.duration == Duration.zero) {
       _handleInstantUpdate();
       return;
     }
@@ -68,6 +132,7 @@ class MotionLayoutState extends State<MotionLayout>
     _entries.clear();
     _flushPendingDisposals();
     _flushPendingRemovals();
+    _activeAnimationCount = 0;
 
     // Re-initialize entries without animation.
     final children = LayoutCloner.getChildren(widget.child);
@@ -110,33 +175,51 @@ class MotionLayoutState extends State<MotionLayout>
 
     final diff = ChildDiffer.diff(_previousKeys, newKeys);
 
-    // --- Process removed children → start exit ---
-    for (final key in diff.removed) {
+    // --- Process removed children → start exit (with stagger) ---
+    final removedList = diff.removed.toList();
+    for (int i = 0; i < removedList.length; i++) {
+      final key = removedList[i];
       final entry = _entries[key];
       if (entry != null && entry.state != ChildAnimationState.exiting) {
-        _startExit(entry);
+        final delay = _computeStaggerDelay(i, removedList.length);
+        _startExit(entry, delay: delay);
       }
     }
 
-    // --- Process added children → create entries ---
+    // --- Process added children → create entries (with stagger) ---
+    final addedIndices = <int>[];
+    for (int i = 0; i < newChildren.length; i++) {
+      final key = newChildren[i].key!;
+      if (diff.added.contains(key)) {
+        addedIndices.add(i);
+      }
+    }
+
+    for (int ai = 0; ai < addedIndices.length; ai++) {
+      final childIndex = addedIndices[ai];
+      final child = newChildren[childIndex];
+      final key = child.key!;
+      final delay = _computeStaggerDelay(ai, addedIndices.length);
+
+      final existing = _entries[key];
+      if (existing != null && existing.state == ChildAnimationState.exiting) {
+        // Re-added during exit: cancel exit, restart as entering.
+        _cancelTransition(existing);
+        existing.widget = child;
+        _startEnter(existing, delay: delay);
+      } else {
+        final entry = AnimatedChildEntry.idle(key: key, widget: child);
+        _entries[key] = entry;
+        if (!_isFirstBuild) {
+          _startEnter(entry, delay: delay);
+        }
+      }
+    }
+
+    // Update existing children's widget references.
     for (final child in newChildren) {
       final key = child.key!;
-      if (diff.added.contains(key)) {
-        final existing = _entries[key];
-        if (existing != null && existing.state == ChildAnimationState.exiting) {
-          // Re-added during exit: cancel exit, restart as entering.
-          _cancelTransition(existing);
-          existing.widget = child;
-          _startEnter(existing);
-        } else {
-          final entry = AnimatedChildEntry.idle(key: key, widget: child);
-          _entries[key] = entry;
-          if (!_isFirstBuild) {
-            _startEnter(entry);
-          }
-        }
-      } else {
-        // Existing child — update widget reference.
+      if (!diff.added.contains(key)) {
         _entries[key]?.widget = child;
       }
     }
@@ -195,10 +278,15 @@ class MotionLayoutState extends State<MotionLayout>
       ancestor: parentRenderBox,
     );
 
-    // --- INVERT + PLAY ---
+    // --- INVERT + PLAY (with stagger for moves) ---
     bool anyMoveStarted = false;
     final movedOrStable = {...diff.moved, ...diff.stable};
-    for (final key in movedOrStable) {
+    final movedOrStableList = movedOrStable.toList();
+
+    // Collect entries that need moving to compute stagger.
+    final movingEntries = <MapEntry<AnimatedChildEntry, Offset>>[];
+
+    for (final key in movedOrStableList) {
       final entry = _entries[key];
       if (entry == null) continue;
 
@@ -214,7 +302,13 @@ class MotionLayoutState extends State<MotionLayout>
         continue;
       }
 
-      _startMove(entry, delta);
+      movingEntries.add(MapEntry(entry, delta));
+    }
+
+    for (int i = 0; i < movingEntries.length; i++) {
+      final e = movingEntries[i];
+      final delay = _computeStaggerDelay(i, movingEntries.length);
+      _startMove(e.key, e.value, delay: delay);
       anyMoveStarted = true;
     }
 
@@ -243,14 +337,25 @@ class MotionLayoutState extends State<MotionLayout>
     }
   }
 
-  void _startMove(AnimatedChildEntry entry, Offset delta) {
+  // ---------------------------------------------------------------------------
+  // _startMove — with spring physics (Feature 5), per-child curves (Feature 7),
+  //              stagger (Feature 1), and callbacks (Feature 2)
+  // ---------------------------------------------------------------------------
+
+  void _startMove(
+    AnimatedChildEntry entry,
+    Offset delta, {
+    Duration delay = Duration.zero,
+  }) {
     // Stop any in-progress move.
     if (entry.moveController != null) {
       entry.moveCurvedAnimation?.dispose();
       entry.moveCurvedAnimation = null;
+      entry.moveAnimation = null;
       _pendingDisposal.add(entry.moveController!);
       entry.moveController = null;
     }
+    entry.cancelStagger();
 
     final controller = AnimationController(
       duration: widget.duration,
@@ -258,42 +363,76 @@ class MotionLayoutState extends State<MotionLayout>
     );
     entry.moveController = controller;
 
-    final animation = CurvedAnimation(parent: controller, curve: widget.curve);
-    entry.moveCurvedAnimation = animation;
+    // Choose animation source: spring or curve.
+    Animation<double> animation;
+    if (widget.spring != null) {
+      // Spring mode — use raw controller (SpringSimulation provides its own easing).
+      animation = controller;
+      entry.moveCurvedAnimation = null;
+    } else {
+      // Curve mode — wrap in CurvedAnimation.
+      final curved = CurvedAnimation(
+        parent: controller,
+        curve: widget.effectiveMoveCurve,
+      );
+      entry.moveCurvedAnimation = curved;
+      animation = curved;
+    }
+    entry.moveAnimation = animation;
 
     entry.currentTranslationOffset = delta;
 
-    // The closure captures `entry` and `delta` by reference. This is safe
-    // because the controller is stored in `entry.moveController` and properly
-    // disposed via `_pendingDisposal` when the animation completes (status
-    // listener below) or is interrupted (top of `_startMove`).
-    //
     // No setState — AnimatedBuilder in _buildChild handles scoped rebuild.
     animation.addListener(() {
-      final t = animation.value;
-      entry.currentTranslationOffset = Offset.lerp(delta, Offset.zero, t)!;
+      entry.currentTranslationOffset = Offset.lerp(
+        delta,
+        Offset.zero,
+        animation.value,
+      )!;
     });
 
     controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         entry.currentTranslationOffset = Offset.zero;
         // Guard: only dispose if this controller is still the active one.
-        // An interruption or exit may have already added it to _pendingDisposal.
         if (entry.moveController == controller) {
           entry.moveCurvedAnimation?.dispose();
           entry.moveCurvedAnimation = null;
-          // Defer disposal — we're inside the controller's own listener.
+          entry.moveAnimation = null;
           _pendingDisposal.add(controller);
           entry.moveController = null;
         }
+        _decrementActiveAnimations();
         if (mounted) setState(() {});
       }
     });
 
-    controller.forward();
+    _incrementActiveAnimations();
+
+    void doForward() {
+      if (!mounted) return;
+      if (widget.spring != null) {
+        final springDesc = widget.spring!.toSpringDescription();
+        final simulation = SpringSimulation(springDesc, 0.0, 1.0, 0.0);
+        controller.animateWith(simulation);
+      } else {
+        controller.forward();
+      }
+    }
+
+    if (delay > Duration.zero) {
+      entry.staggerTimer = Timer(delay, doForward);
+    } else {
+      doForward();
+    }
   }
 
-  void _startEnter(AnimatedChildEntry entry) {
+  // ---------------------------------------------------------------------------
+  // _startEnter — with stagger (Feature 1), per-child curves (Feature 7),
+  //               and callbacks (Feature 2)
+  // ---------------------------------------------------------------------------
+
+  void _startEnter(AnimatedChildEntry entry, {Duration delay = Duration.zero}) {
     entry.state = ChildAnimationState.entering;
 
     if (entry.transitionController != null) {
@@ -302,6 +441,7 @@ class MotionLayoutState extends State<MotionLayout>
       _pendingDisposal.add(entry.transitionController!);
       entry.transitionController = null;
     }
+    entry.cancelStagger();
 
     final controller = AnimationController(
       duration: widget.effectiveTransitionDuration,
@@ -310,7 +450,7 @@ class MotionLayoutState extends State<MotionLayout>
     entry.transitionController = controller;
     entry.transitionCurvedAnimation = CurvedAnimation(
       parent: controller,
-      curve: widget.curve,
+      curve: widget.effectiveEnterCurve,
     );
 
     controller.addStatusListener((status) {
@@ -322,14 +462,29 @@ class MotionLayoutState extends State<MotionLayout>
           _pendingDisposal.add(controller);
           entry.transitionController = null;
         }
+        _decrementActiveAnimations();
         if (mounted) setState(() {});
       }
     });
 
-    controller.forward();
+    _incrementActiveAnimations();
+    widget.onChildEnter?.call(entry.key);
+
+    if (delay > Duration.zero) {
+      entry.staggerTimer = Timer(delay, () {
+        if (mounted) controller.forward();
+      });
+    } else {
+      controller.forward();
+    }
   }
 
-  void _startExit(AnimatedChildEntry entry) {
+  // ---------------------------------------------------------------------------
+  // _startExit — with stagger (Feature 1), per-child curves (Feature 7),
+  //              and callbacks (Feature 2)
+  // ---------------------------------------------------------------------------
+
+  void _startExit(AnimatedChildEntry entry, {Duration delay = Duration.zero}) {
     entry.state = ChildAnimationState.exiting;
 
     // Stop any in-progress move animation so the exit position offset
@@ -337,6 +492,7 @@ class MotionLayoutState extends State<MotionLayout>
     if (entry.moveController != null) {
       entry.moveCurvedAnimation?.dispose();
       entry.moveCurvedAnimation = null;
+      entry.moveAnimation = null;
       _pendingDisposal.add(entry.moveController!);
       entry.moveController = null;
     }
@@ -347,6 +503,7 @@ class MotionLayoutState extends State<MotionLayout>
       _pendingDisposal.add(entry.transitionController!);
       entry.transitionController = null;
     }
+    entry.cancelStagger();
 
     final controller = AnimationController(
       duration: widget.effectiveTransitionDuration,
@@ -355,7 +512,7 @@ class MotionLayoutState extends State<MotionLayout>
     entry.transitionController = controller;
     entry.transitionCurvedAnimation = CurvedAnimation(
       parent: controller,
-      curve: widget.curve,
+      curve: widget.effectiveExitCurve,
     );
 
     controller.addStatusListener((status) {
@@ -367,6 +524,7 @@ class MotionLayoutState extends State<MotionLayout>
         if (entry.moveController != null) {
           entry.moveCurvedAnimation?.dispose();
           entry.moveCurvedAnimation = null;
+          entry.moveAnimation = null;
           _pendingDisposal.add(entry.moveController!);
           entry.moveController = null;
         }
@@ -376,17 +534,28 @@ class MotionLayoutState extends State<MotionLayout>
           _pendingDisposal.add(controller);
           entry.transitionController = null;
         }
+        _decrementActiveAnimations();
         if (mounted) setState(() {});
       }
     });
 
+    _incrementActiveAnimations();
+    widget.onChildExit?.call(entry.key);
+
     // Use forward 0→1 for the controller. The exit transition receives
     // a reversed animation (1→0) so opacity/scale go from visible to gone.
-    controller.forward();
+    if (delay > Duration.zero) {
+      entry.staggerTimer = Timer(delay, () {
+        if (mounted) controller.forward();
+      });
+    } else {
+      controller.forward();
+    }
   }
 
   /// Cancels any active transition on [entry] without disposal conflicts.
   void _cancelTransition(AnimatedChildEntry entry) {
+    entry.cancelStagger();
     if (entry.transitionController != null) {
       entry.transitionController!.stop();
       entry.transitionCurvedAnimation?.dispose();
@@ -462,15 +631,24 @@ class MotionLayoutState extends State<MotionLayout>
   }
 
   Widget _buildChild(AnimatedChildEntry entry) {
+    // If the widget is a Positioned (inside a Stack), apply transitions to
+    // the Positioned's child and re-wrap with Positioned at the outer level.
+    // Positioned must be a direct child of Stack — wrapping it inside
+    // Transform or ScaleTransition breaks that Flutter invariant.
+    final positioned = entry.widget is Positioned
+        ? entry.widget as Positioned
+        : null;
+    final innerWidget = positioned?.child ?? entry.widget;
+
     // Inner wrapper with GlobalKey for RenderBox position tracking.
-    Widget child = KeyedSubtree(key: entry.globalKey, child: entry.widget);
+    Widget child = KeyedSubtree(key: entry.globalKey, child: innerWidget);
 
     // Apply move transform.
     // When an active move animation exists, use AnimatedBuilder to scope
     // rebuilds to just this child's subtree (avoids full tree setState).
-    if (entry.moveCurvedAnimation != null) {
+    if (entry.moveAnimation != null) {
       child = AnimatedBuilder(
-        animation: entry.moveCurvedAnimation!,
+        animation: entry.moveAnimation!,
         child: child,
         builder: (context, childWidget) {
           final offset = entry.currentTranslationOffset;
@@ -508,6 +686,19 @@ class MotionLayoutState extends State<MotionLayout>
             child,
           ),
         ),
+      );
+    }
+
+    // Re-wrap with Positioned so it remains a direct child of Stack.
+    if (positioned != null) {
+      child = Positioned(
+        left: positioned.left,
+        top: positioned.top,
+        right: positioned.right,
+        bottom: positioned.bottom,
+        width: positioned.width,
+        height: positioned.height,
+        child: child,
       );
     }
 

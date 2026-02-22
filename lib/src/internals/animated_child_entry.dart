@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'layout_snapshot.dart';
 
@@ -64,15 +66,38 @@ class AnimatedChildEntry {
   /// be accounted for in the new "before" position.
   Offset currentTranslationOffset = Offset.zero;
 
+  /// Timer used for staggered animation delays. When a stagger delay is
+  /// applied, the controller.forward() call is deferred until this timer fires.
+  Timer? _staggerTimer;
+
+  /// The active move animation used for interpolation.
+  ///
+  /// In curve mode this is the [moveCurvedAnimation]; in spring mode this is
+  /// the raw [moveController]. Used by `_buildChild` for AnimatedBuilder.
+  Animation<double>? moveAnimation;
+
   /// Whether this child is currently animating (moving or transitioning).
   bool get isAnimating =>
       (moveController?.isAnimating ?? false) ||
       (transitionController?.isAnimating ?? false);
 
+  /// Cancels any pending stagger timer.
+  void cancelStagger() {
+    _staggerTimer?.cancel();
+    _staggerTimer = null;
+  }
+
+  /// Sets the stagger timer. Cancels any existing one first.
+  set staggerTimer(Timer? timer) {
+    _staggerTimer?.cancel();
+    _staggerTimer = timer;
+  }
+
   /// Disposes all animation controllers owned by this entry.
   /// Curved animations are disposed before their parent controllers
   /// to detach listeners before the parent is torn down.
   void dispose() {
+    cancelStagger();
     moveCurvedAnimation?.dispose();
     transitionCurvedAnimation?.dispose();
     moveController?.dispose();

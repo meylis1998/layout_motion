@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import 'motion_layout_state.dart';
+import 'motion_spring.dart';
+import 'stagger.dart';
 import 'transitions/motion_transition.dart';
 import 'transitions/fade_transition.dart';
 
@@ -36,9 +38,19 @@ class MotionLayout extends StatefulWidget {
     this.enterTransition,
     this.exitTransition,
     this.clipBehavior = Clip.hardEdge,
-    this.enabled = true,
+    this.enabled,
     this.moveThreshold = 0.5,
     this.transitionDuration,
+    this.staggerDuration = Duration.zero,
+    this.staggerFrom = StaggerFrom.first,
+    this.onAnimationStart,
+    this.onAnimationComplete,
+    this.onChildEnter,
+    this.onChildExit,
+    this.spring,
+    this.moveCurve,
+    this.enterCurve,
+    this.exitCurve,
   }) : assert(moveThreshold > 0, 'moveThreshold must be greater than 0'),
        assert(
          child is Column || child is Row || child is Wrap || child is Stack,
@@ -78,9 +90,10 @@ class MotionLayout extends StatefulWidget {
 
   /// Whether animations are enabled.
   ///
-  /// When false, layout changes are instant (no animation overhead).
-  /// Defaults to true.
-  final bool enabled;
+  /// When `null` (the default), animations are auto-detected from
+  /// [MediaQuery.disableAnimations]. When `true`, animations are always
+  /// enabled. When `false`, layout changes are instant (no animation overhead).
+  final bool? enabled;
 
   /// Minimum position delta (in logical pixels) required to trigger a move
   /// animation. Moves smaller than this are applied instantly to avoid
@@ -94,6 +107,59 @@ class MotionLayout extends StatefulWidget {
   /// When null, falls back to [duration]. This allows move and transition
   /// animations to run at independent speeds.
   final Duration? transitionDuration;
+
+  /// Delay between each child's animation start.
+  ///
+  /// Applied to enter, exit, and move animations to create a cascading
+  /// stagger effect. Default: [Duration.zero] (no stagger).
+  final Duration staggerDuration;
+
+  /// Direction of the stagger cascade.
+  ///
+  /// Controls which children animate first. Default: [StaggerFrom.first].
+  final StaggerFrom staggerFrom;
+
+  /// Called when any animation starts (at least one child begins animating).
+  final VoidCallback? onAnimationStart;
+
+  /// Called when all animations complete (no children animating).
+  final VoidCallback? onAnimationComplete;
+
+  /// Called when a specific child begins its enter animation.
+  final ValueChanged<Key>? onChildEnter;
+
+  /// Called when a specific child begins its exit animation.
+  final ValueChanged<Key>? onChildExit;
+
+  /// Optional spring configuration for physics-based move animations.
+  ///
+  /// When set, overrides [curve] (and [moveCurve]) for move animations.
+  /// Enter/exit transitions still use their respective curves.
+  final MotionSpring? spring;
+
+  /// Optional curve override for move animations only.
+  ///
+  /// When null, falls back to [curve].
+  final Curve? moveCurve;
+
+  /// Optional curve override for enter transitions only.
+  ///
+  /// When null, falls back to [curve].
+  final Curve? enterCurve;
+
+  /// Optional curve override for exit transitions only.
+  ///
+  /// When null, falls back to [curve].
+  final Curve? exitCurve;
+
+  /// The effective move curve, falling back to [curve].
+  Curve get effectiveMoveCurve => moveCurve ?? curve;
+
+  /// The effective enter curve, falling back to [curve].
+  Curve get effectiveEnterCurve => enterCurve ?? curve;
+
+  /// The effective exit curve, falling back to [curve].
+  Curve get effectiveExitCurve => exitCurve ?? curve;
 
   /// The effective transition duration, falling back to [duration].
   Duration get effectiveTransitionDuration => transitionDuration ?? duration;

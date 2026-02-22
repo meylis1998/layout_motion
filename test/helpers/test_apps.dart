@@ -10,7 +10,7 @@ class TestColumnApp extends StatelessWidget {
     this.duration = const Duration(milliseconds: 300),
     this.itemHeight = 50,
     this.itemWidth = 100,
-    this.enabled = true,
+    this.enabled,
     this.enterTransition,
     this.exitTransition,
     this.clipBehavior = Clip.hardEdge,
@@ -23,7 +23,7 @@ class TestColumnApp extends StatelessWidget {
   final Duration duration;
   final double itemHeight;
   final double itemWidth;
-  final bool enabled;
+  final bool? enabled;
   final MotionTransition? enterTransition;
   final MotionTransition? exitTransition;
   final Clip clipBehavior;
