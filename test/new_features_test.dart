@@ -602,9 +602,7 @@ void main() {
         const Directionality(
           textDirection: TextDirection.ltr,
           child: MotionLayout(
-            child: Column(
-              children: [SizedBox(key: ValueKey('a'), height: 50)],
-            ),
+            child: Column(children: [SizedBox(key: ValueKey('a'), height: 50)]),
           ),
         ),
       );
