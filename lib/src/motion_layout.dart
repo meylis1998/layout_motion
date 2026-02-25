@@ -9,9 +9,9 @@ import 'transitions/fade_transition.dart';
 
 /// A widget that automatically animates layout changes in its child.
 ///
-/// Wrap any [Column], [Row], [Wrap], or [Stack] to get smooth FLIP (First,
-/// Last, Invert, Play) animations whenever children are added, removed, or
-/// reordered.
+/// Wrap any [Column], [Row], [Wrap], [Stack], or [GridView] to get smooth
+/// FLIP (First, Last, Invert, Play) animations whenever children are added,
+/// removed, or reordered.
 ///
 /// Children **must** have unique [Key]s for the diff algorithm to track them.
 ///
@@ -30,7 +30,7 @@ import 'transitions/fade_transition.dart';
 class MotionLayout extends StatefulWidget {
   /// Creates a [MotionLayout] that animates layout changes in [child].
   ///
-  /// The [child] must be a [Column], [Row], [Wrap], or [Stack].
+  /// The [child] must be a [Column], [Row], [Wrap], [Stack], or [GridView].
   const MotionLayout({
     super.key,
     required this.child,
@@ -56,15 +56,25 @@ class MotionLayout extends StatefulWidget {
     this.exitLayoutBehavior = ExitLayoutBehavior.maintain,
     this.onReorder,
     this.dragDecorator,
+    this.animateSizeChanges = false,
+    this.sizeChangeThreshold = 1.0,
+    this.onChildSizeChange,
+    this.animateOnFirstBuild = false,
   }) : assert(moveThreshold > 0, 'moveThreshold must be greater than 0'),
+       assert(sizeChangeThreshold > 0,
+           'sizeChangeThreshold must be greater than 0'),
        assert(
-         child is Column || child is Row || child is Wrap || child is Stack,
-         'MotionLayout child must be a Column, Row, Wrap, or Stack.',
+         child is Column ||
+             child is Row ||
+             child is Wrap ||
+             child is Stack ||
+             child is GridView,
+         'MotionLayout child must be a Column, Row, Wrap, Stack, or GridView.',
        );
 
   /// The layout widget whose children will be animated.
   ///
-  /// Must be a [Column], [Row], [Wrap], or [Stack].
+  /// Must be a [Column], [Row], [Wrap], [Stack], or [GridView].
   final Widget child;
 
   /// Duration of move animations.
@@ -179,6 +189,33 @@ class MotionLayout extends StatefulWidget {
   /// Receives the child widget and returns a decorated version.
   /// Defaults to adding a slight elevation effect.
   final Widget Function(Widget child)? dragDecorator;
+
+  /// Whether to animate size changes for existing children (same key,
+  /// different size).
+  ///
+  /// When true, children that change size will smoothly morph while
+  /// siblings reflow to their new positions via FLIP. Useful for
+  /// accordion/expand-collapse patterns.
+  ///
+  /// Defaults to `false`.
+  final bool animateSizeChanges;
+
+  /// Minimum size delta (in logical pixels) required to trigger a size
+  /// morph animation. Size changes smaller than this are applied instantly.
+  ///
+  /// Must be greater than 0. Defaults to `1.0`.
+  final double sizeChangeThreshold;
+
+  /// Called when a specific child begins a size morph animation.
+  final ValueChanged<Key>? onChildSizeChange;
+
+  /// Whether children animate on the very first build.
+  ///
+  /// When `true` (the default), children play their enter transition on
+  /// initial render. Set to `false` to suppress first-build animations,
+  /// useful for scroll-aware layouts where enter animations should be
+  /// triggered by viewport visibility instead.
+  final bool animateOnFirstBuild;
 
   /// The effective move curve, falling back to [curve].
   Curve get effectiveMoveCurve => moveCurve ?? curve;

@@ -7,9 +7,11 @@ import 'package:flutter/widgets.dart';
 import 'exit_layout_behavior.dart';
 import 'internals/animated_child_entry.dart';
 import 'internals/child_differ.dart';
+import 'internals/grid_stagger.dart';
 import 'internals/layout_cloner.dart';
 import 'internals/layout_snapshot.dart';
 import 'internals/drag_handler.dart';
+import 'internals/size_morph_handler.dart';
 import 'motion_layout.dart';
 import 'stagger.dart';
 
@@ -40,6 +42,21 @@ class MotionLayoutState extends State<MotionLayout>
 
   /// Tracked children indexed by their user-provided key.
   final Map<Key, AnimatedChildEntry> _entries = {};
+
+  /// Access to tracked entries for [ScrollAwareMotionLayout].
+  ///
+  /// The entries themselves are mutable (needed for [triggerEnter]),
+  /// but callers should not add or remove keys.
+  Map<Key, AnimatedChildEntry> get entries => _entries;
+
+  /// Triggers an enter animation on [entry] with optional [delay].
+  ///
+  /// Used by [ScrollAwareMotionLayout] to animate children that become
+  /// visible in the viewport.
+  void triggerEnter(AnimatedChildEntry entry, {Duration delay = Duration.zero}) {
+    _startEnter(entry, delay: delay);
+    if (mounted) setState(() {});
+  }
 
   /// Keys of the children from the previous build, in order.
   List<Key> _previousKeys = [];
@@ -86,7 +103,7 @@ class MotionLayoutState extends State<MotionLayout>
     final wasZero = _activeAnimationCount == 0;
     _activeAnimationCount++;
     if (wasZero) {
-      widget.onAnimationStart?.call();
+      _postFrameCallback(() => widget.onAnimationStart?.call());
     }
   }
 
@@ -94,8 +111,16 @@ class MotionLayoutState extends State<MotionLayout>
     _activeAnimationCount--;
     if (_activeAnimationCount <= 0) {
       _activeAnimationCount = 0;
-      widget.onAnimationComplete?.call();
+      _postFrameCallback(() => widget.onAnimationComplete?.call());
     }
+  }
+
+  /// Schedules [callback] to run after the current frame, avoiding
+  /// setState-during-build errors when user callbacks call setState.
+  void _postFrameCallback(VoidCallback callback) {
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) callback();
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -106,6 +131,22 @@ class MotionLayoutState extends State<MotionLayout>
     if (widget.staggerDuration == Duration.zero || total <= 1) {
       return Duration.zero;
     }
+
+    // For GridView, use dual-axis (Manhattan distance) stagger.
+    if (widget.child is GridView) {
+      final crossAxisCount = _getGridCrossAxisCount();
+      if (crossAxisCount != null && crossAxisCount > 0) {
+        return GridStagger.compute(
+          index: index,
+          total: total,
+          crossAxisCount: crossAxisCount,
+          staggerDuration: widget.staggerDuration,
+          staggerFrom: widget.staggerFrom,
+        );
+      }
+    }
+
+    // For Column, Row, Wrap, Stack — linear stagger.
     final int staggerIndex;
     switch (widget.staggerFrom) {
       case StaggerFrom.first:
@@ -117,6 +158,17 @@ class MotionLayoutState extends State<MotionLayout>
         staggerIndex = (index - center).abs().round();
     }
     return widget.staggerDuration * staggerIndex;
+  }
+
+  /// Extracts the cross-axis count from the GridView's delegate.
+  int? _getGridCrossAxisCount() {
+    if (widget.child is! GridView) return null;
+    final gridView = widget.child as GridView;
+    final parentBox = _getParentRenderBox();
+    return GridStagger.extractCrossAxisCount(
+      gridView.gridDelegate,
+      parentWidth: parentBox?.size.width,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -345,6 +397,29 @@ class MotionLayoutState extends State<MotionLayout>
       anyMoveStarted = true;
     }
 
+    // --- SIZE MORPH: detect stable children whose size changed ---
+    if (widget.animateSizeChanges) {
+      final beforeMap = <Key, ChildSnapshot>{};
+      for (final entry in _entries.values) {
+        if (entry.beforeSnapshot != null) {
+          beforeMap[entry.key] = entry.beforeSnapshot!;
+        }
+      }
+      final sizeChanges = SizeMorphHandler.detectSizeChanges(
+        beforeSnapshots: beforeMap,
+        afterSnapshots: afterSnapshots,
+        stableKeys: movedOrStable,
+        sizeThreshold: widget.sizeChangeThreshold,
+      );
+      for (final change in sizeChanges) {
+        final entry = _entries[change.key];
+        if (entry != null) {
+          _startSizeMorph(entry, change.beforeSize, change.afterSize);
+          anyMoveStarted = true;
+        }
+      }
+    }
+
     // Snap exiting children to their pre-removal visual position so they
     // don't jump to the end of the layout during the exit transition.
     // (Skip in pop mode — exiting children are positioned overlays.)
@@ -371,6 +446,55 @@ class MotionLayoutState extends State<MotionLayout>
     if (anyMoveStarted && mounted) {
       setState(() {});
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // _startSizeMorph — animates size changes for stable children (v0.9.0)
+  // ---------------------------------------------------------------------------
+
+  void _startSizeMorph(
+    AnimatedChildEntry entry,
+    Size beforeSize,
+    Size afterSize,
+  ) {
+    // Stop any in-progress size morph.
+    if (entry.sizeController != null) {
+      entry.sizeCurvedAnimation?.dispose();
+      entry.sizeCurvedAnimation = null;
+      _pendingDisposal.add(entry.sizeController!);
+      entry.sizeController = null;
+    }
+
+    final controller = AnimationController(
+      duration: widget.duration,
+      vsync: this,
+    );
+    entry.sizeController = controller;
+    entry.sizeCurvedAnimation = CurvedAnimation(
+      parent: controller,
+      curve: widget.effectiveMoveCurve,
+    );
+    entry.morphBeforeSize = beforeSize;
+    entry.morphAfterSize = afterSize;
+
+    controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        entry.morphBeforeSize = null;
+        entry.morphAfterSize = null;
+        if (entry.sizeController == controller) {
+          entry.sizeCurvedAnimation?.dispose();
+          entry.sizeCurvedAnimation = null;
+          _pendingDisposal.add(controller);
+          entry.sizeController = null;
+        }
+        _decrementActiveAnimations();
+        if (mounted) setState(() {});
+      }
+    });
+
+    _incrementActiveAnimations();
+    _postFrameCallback(() => widget.onChildSizeChange?.call(entry.key));
+    controller.forward();
   }
 
   // ---------------------------------------------------------------------------
@@ -444,7 +568,7 @@ class MotionLayoutState extends State<MotionLayout>
     });
 
     _incrementActiveAnimations();
-    widget.onChildMove?.call(entry.key);
+    _postFrameCallback(() => widget.onChildMove?.call(entry.key));
 
     void doForward() {
       if (!mounted) return;
@@ -505,7 +629,7 @@ class MotionLayoutState extends State<MotionLayout>
     });
 
     _incrementActiveAnimations();
-    widget.onChildEnter?.call(entry.key);
+    _postFrameCallback(() => widget.onChildEnter?.call(entry.key));
 
     if (delay > Duration.zero) {
       entry.staggerTimer = Timer(delay, () {
@@ -577,7 +701,7 @@ class MotionLayoutState extends State<MotionLayout>
     });
 
     _incrementActiveAnimations();
-    widget.onChildExit?.call(entry.key);
+    _postFrameCallback(() => widget.onChildExit?.call(entry.key));
 
     // Use forward 0→1 for the controller. The exit transition receives
     // a reversed animation (1→0) so opacity/scale go from visible to gone.
@@ -637,6 +761,16 @@ class MotionLayoutState extends State<MotionLayout>
       _initializeEntries();
       _syncDragHandler();
       _isFirstBuild = false;
+
+      // Optionally trigger enter animations for all initial children.
+      if (widget.animateOnFirstBuild && _effectiveEnabled) {
+        final keys = _entries.keys.toList();
+        for (int i = 0; i < keys.length; i++) {
+          final entry = _entries[keys[i]]!;
+          final delay = _computeStaggerDelay(i, keys.length);
+          _startEnter(entry, delay: delay);
+        }
+      }
     }
 
     // Build the merged children list.
@@ -763,6 +897,31 @@ class MotionLayoutState extends State<MotionLayout>
       child = Transform.translate(
         offset: entry.currentTranslationOffset,
         child: child,
+      );
+    }
+
+    // Apply size morph animation. The child renders at its final size
+    // (preventing text reflow) but is clipped to the interpolated size.
+    // The parent layout sees the interpolated size, so siblings FLIP smoothly.
+    if (entry.isMorphing && entry.sizeCurvedAnimation != null) {
+      child = AnimatedBuilder(
+        animation: entry.sizeCurvedAnimation!,
+        child: child,
+        builder: (context, childWidget) {
+          final t = entry.sizeCurvedAnimation!.value;
+          final size = Size.lerp(
+            entry.morphBeforeSize,
+            entry.morphAfterSize,
+            t,
+          )!;
+          return ClipRect(
+            child: SizedOverflowBox(
+              size: size,
+              alignment: Alignment.topLeft,
+              child: childWidget,
+            ),
+          );
+        },
       );
     }
 
@@ -943,7 +1102,7 @@ class MotionLayoutState extends State<MotionLayout>
 
     // Determine layout axis.
     final isVertical = widget.child is Column;
-    final isWrap = widget.child is Wrap;
+    final isWrap = widget.child is Wrap || widget.child is GridView;
 
     // Compute target index based on non-dragged children positions.
     // Use the current _dragSnapshots (which reflect current visual positions).

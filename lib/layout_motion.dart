@@ -1,6 +1,12 @@
 export 'src/exit_layout_behavior.dart';
+export 'src/motion_grid_view.dart';
 export 'src/motion_layout.dart';
+export 'src/motion_layout_group.dart';
+export 'src/motion_layout_id.dart';
+export 'src/motion_layout_scope.dart';
+export 'src/motion_list_view.dart';
 export 'src/motion_spring.dart';
+export 'src/scroll_aware_motion_layout.dart';
 export 'src/stagger.dart';
 export 'src/transitions/composed_transition.dart';
 export 'src/transitions/fade_scale_transition.dart';

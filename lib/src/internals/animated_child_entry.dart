@@ -84,10 +84,27 @@ class AnimatedChildEntry {
   /// the raw [moveController]. Used by `_buildChild` for AnimatedBuilder.
   Animation<double>? moveAnimation;
 
-  /// Whether this child is currently animating (moving or transitioning).
+  /// Controller for the size morph animation.
+  AnimationController? sizeController;
+
+  /// The [CurvedAnimation] wrapping [sizeController].
+  CurvedAnimation? sizeCurvedAnimation;
+
+  /// The size before the morph animation started.
+  Size? morphBeforeSize;
+
+  /// The target size for the morph animation.
+  Size? morphAfterSize;
+
+  /// Whether this child is currently morphing its size.
+  bool get isMorphing => sizeController?.isAnimating ?? false;
+
+  /// Whether this child is currently animating (moving, transitioning,
+  /// or morphing).
   bool get isAnimating =>
       (moveController?.isAnimating ?? false) ||
-      (transitionController?.isAnimating ?? false);
+      (transitionController?.isAnimating ?? false) ||
+      (sizeController?.isAnimating ?? false);
 
   /// Cancels any pending stagger timer.
   void cancelStagger() {
@@ -108,8 +125,10 @@ class AnimatedChildEntry {
     cancelStagger();
     moveCurvedAnimation?.dispose();
     transitionCurvedAnimation?.dispose();
+    sizeCurvedAnimation?.dispose();
     moveController?.dispose();
     transitionController?.dispose();
+    sizeController?.dispose();
   }
 
   /// Creates an idle entry with a fresh [GlobalKey].
