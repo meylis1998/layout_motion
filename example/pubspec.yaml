@@ -1,5 +1,6 @@
 name: layout_motion_example
 description: Example app demonstrating layout_motion package.
+version: 1.0.0+1
 publish_to: 'none'
 
 environment:

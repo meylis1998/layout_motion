@@ -1,3 +1,32 @@
+## 1.1.0
+
+- **NEW:** Shared element transitions — `MotionLayoutScope`, `MotionLayoutId`, and `MotionLayoutGroup` enable cross-tree FLIP animations. Two widgets with the same `id` automatically animate between positions when one unmounts and the other mounts. Supports namespace isolation, spring physics, content cross-fade, and graveyard timeout.
+- Add Shared Element demo to example app
+
+## 1.0.0
+
+- **NEW:** `MotionListView` — animated scrollable list with `children` and `.builder` constructors. Children mode wraps `SingleChildScrollView` + FLIP engine; builder mode uses `CustomScrollView` + `SliverList` with per-item enter/exit animations.
+- **NEW:** `MotionGridView` — animated scrollable grid with `children` and `.builder` constructors. Same two-tier architecture with `gridDelegate` support.
+- Add MotionListView demo to example app
+
+## 0.10.0
+
+- **NEW:** Scroll-triggered animations — `ScrollAwareMotionLayout` animates children as they scroll into the viewport. Supports `visibilityThreshold`, `animateOnce`, and stagger integration.
+- **NEW:** `animateOnFirstBuild` parameter on `MotionLayout` — controls whether children animate on initial build (default `false` for backward compatibility).
+- Add Scroll-Triggered demo to example app
+
+## 0.9.0
+
+- **NEW:** Size morphing — `animateSizeChanges: true` on `MotionLayout` detects when an existing child changes size and smoothly interpolates using ClipRect + SizedOverflowBox. Siblings FLIP to new positions during the morph.
+- **NEW:** `sizeChangeThreshold` parameter — minimum size delta to trigger morph animation (default 2.0 pixels).
+- **NEW:** `onChildSizeChange` callback — fires when a child begins a size morph animation.
+- Add Size Morphing demo to example app
+
+## 0.8.0
+
+- **NEW:** GridView support — `MotionLayout` now accepts `GridView` as a child layout type with full FLIP, dual-axis stagger, and drag-to-reorder support.
+- Add GridView demo to example app
+
 ## 0.5.0
 
 - **NEW:** Drag-to-Reorder — long-press and drag children to reorder with smooth FLIP animations for siblings. Set `onReorder` to enable. Customize the dragged child appearance with `dragDecorator`.

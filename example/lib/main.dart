@@ -118,6 +118,56 @@ class DemoSelector extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const PopExitDemo()),
             ),
           ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'v0.8.0 \u2013 v1.1.0',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+          ),
+          ListTile(
+            title: const Text('GridView'),
+            subtitle: const Text('Animated grid with 2D FLIP and stagger'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const GridViewDemo()),
+            ),
+          ),
+          ListTile(
+            title: const Text('Size Morphing'),
+            subtitle: const Text('Expandable cards with smooth size animation'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SizeMorphDemo()),
+            ),
+          ),
+          ListTile(
+            title: const Text('Scroll-Triggered'),
+            subtitle: const Text('Children animate as they scroll into view'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ScrollTriggeredDemo()),
+            ),
+          ),
+          ListTile(
+            title: const Text('MotionListView'),
+            subtitle: const Text('Animated scrollable list with add/remove'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MotionListViewDemo()),
+            ),
+          ),
+          ListTile(
+            title: const Text('Shared Element'),
+            subtitle: const Text('Cross-tree FLIP between grid and detail'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SharedElementDemo()),
+            ),
+          ),
         ],
       ),
     );
@@ -663,59 +713,83 @@ class _StaggerSpringDemoState extends State<StaggerSpringDemo> {
               child: Column(
                 children: [
                   // Spring preset selector.
-                  ListTile(
-                    title: const Text('Spring Preset'),
-                    trailing: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'gentle', label: Text('Gentle')),
-                        ButtonSegment(value: 'smooth', label: Text('Smooth')),
-                        ButtonSegment(value: 'bouncy', label: Text('Bouncy')),
-                        ButtonSegment(value: 'stiff', label: Text('Stiff')),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(left: 16, bottom: 8),
+                          child: Text('Spring Preset'),
+                        ),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment(value: 'gentle', label: Text('Gentle')),
+                              ButtonSegment(value: 'smooth', label: Text('Smooth')),
+                              ButtonSegment(value: 'bouncy', label: Text('Bouncy')),
+                              ButtonSegment(value: 'stiff', label: Text('Stiff')),
+                            ],
+                            selected: {
+                              _spring == MotionSpring.gentle
+                                  ? 'gentle'
+                                  : _spring == MotionSpring.smooth
+                                  ? 'smooth'
+                                  : _spring == MotionSpring.bouncy
+                                  ? 'bouncy'
+                                  : 'stiff',
+                            },
+                            onSelectionChanged: (v) {
+                              setState(() {
+                                _spring = switch (v.first) {
+                                  'gentle' => MotionSpring.gentle,
+                                  'smooth' => MotionSpring.smooth,
+                                  'bouncy' => MotionSpring.bouncy,
+                                  _ => MotionSpring.stiff,
+                                };
+                              });
+                            },
+                          ),
+                        ),
                       ],
-                      selected: {
-                        _spring == MotionSpring.gentle
-                            ? 'gentle'
-                            : _spring == MotionSpring.smooth
-                            ? 'smooth'
-                            : _spring == MotionSpring.bouncy
-                            ? 'bouncy'
-                            : 'stiff',
-                      },
-                      onSelectionChanged: (v) {
-                        setState(() {
-                          _spring = switch (v.first) {
-                            'gentle' => MotionSpring.gentle,
-                            'smooth' => MotionSpring.smooth,
-                            'bouncy' => MotionSpring.bouncy,
-                            _ => MotionSpring.stiff,
-                          };
-                        });
-                      },
                     ),
                   ),
                   const Divider(height: 1),
                   // Stagger direction selector.
-                  ListTile(
-                    title: const Text('Stagger From'),
-                    trailing: SegmentedButton<StaggerFrom>(
-                      segments: const [
-                        ButtonSegment(
-                          value: StaggerFrom.first,
-                          label: Text('First'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(left: 16, bottom: 8),
+                          child: Text('Stagger From'),
                         ),
-                        ButtonSegment(
-                          value: StaggerFrom.last,
-                          label: Text('Last'),
-                        ),
-                        ButtonSegment(
-                          value: StaggerFrom.center,
-                          label: Text('Center'),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<StaggerFrom>(
+                            segments: const [
+                              ButtonSegment(
+                                value: StaggerFrom.first,
+                                label: Text('First'),
+                              ),
+                              ButtonSegment(
+                                value: StaggerFrom.last,
+                                label: Text('Last'),
+                              ),
+                              ButtonSegment(
+                                value: StaggerFrom.center,
+                                label: Text('Center'),
+                              ),
+                            ],
+                            selected: {_staggerFrom},
+                            onSelectionChanged: (v) {
+                              setState(() => _staggerFrom = v.first);
+                            },
+                          ),
                         ),
                       ],
-                      selected: {_staggerFrom},
-                      onSelectionChanged: (v) {
-                        setState(() => _staggerFrom = v.first);
-                      },
                     ),
                   ),
                   const Divider(height: 1),
@@ -1275,7 +1349,7 @@ class DragReorderDemo extends StatefulWidget {
 }
 
 class _DragReorderDemoState extends State<DragReorderDemo> {
-  var _items = List.generate(6, (i) => i + 1);
+  final _items = List.generate(6, (i) => i + 1);
   int _nextId = 7;
 
   void _addItem() {
@@ -1461,6 +1535,394 @@ class _PopExitDemoState extends State<PopExitDemo> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo: GridView — Animated grid with 2D FLIP (v0.8.0)
+// ---------------------------------------------------------------------------
+class GridViewDemo extends StatefulWidget {
+  const GridViewDemo({super.key});
+
+  @override
+  State<GridViewDemo> createState() => _GridViewDemoState();
+}
+
+class _GridViewDemoState extends State<GridViewDemo> {
+  var _items = List.generate(12, (i) => i + 1);
+  int _nextId = 13;
+
+  void _addItem() {
+    setState(() {
+      final index = _items.isEmpty ? 0 : Random().nextInt(_items.length);
+      _items.insert(index, _nextId++);
+    });
+  }
+
+  void _removeItem(int id) {
+    setState(() => _items.remove(id));
+  }
+
+  void _shuffle() {
+    setState(() => _items = List.of(_items)..shuffle());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('GridView')),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'shuffle',
+            onPressed: _shuffle,
+            child: const Icon(Icons.shuffle),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'add',
+            onPressed: _addItem,
+            child: const Icon(Icons.add),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: MotionLayout(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+          enterTransition: const FadeScaleIn(),
+          exitTransition: const FadeOut(),
+          spring: MotionSpring.smooth,
+          staggerDuration: const Duration(milliseconds: 30),
+          child: GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 3,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            children: [
+              for (final id in _items)
+                GestureDetector(
+                  key: ValueKey(id),
+                  onTap: () => _removeItem(id),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.primaries[id % Colors.primaries.length]
+                          .withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$id',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo: Size Morphing — Expandable cards (v0.9.0)
+// ---------------------------------------------------------------------------
+class SizeMorphDemo extends StatefulWidget {
+  const SizeMorphDemo({super.key});
+
+  @override
+  State<SizeMorphDemo> createState() => _SizeMorphDemoState();
+}
+
+class _SizeMorphDemoState extends State<SizeMorphDemo> {
+  final _expanded = <int>{};
+  final _items = List.generate(5, (i) => i + 1);
+
+  void _toggle(int id) {
+    setState(() {
+      if (_expanded.contains(id)) {
+        _expanded.remove(id);
+      } else {
+        _expanded.add(id);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Size Morphing')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: MotionLayout(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+          animateSizeChanges: true,
+          child: Column(
+            children: [
+              for (final id in _items)
+                Card(
+                  key: ValueKey(id),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => _toggle(id),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          leading: CircleAvatar(child: Text('$id')),
+                          title: Text('Card $id'),
+                          trailing: Icon(
+                            _expanded.contains(id)
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                          ),
+                        ),
+                        if (_expanded.contains(id))
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Text(
+                              'This is the expanded content for card $id. '
+                              'The card smoothly morphs its size while siblings '
+                              'FLIP to their new positions.',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo: Scroll-Triggered — Animate on viewport entry (v0.10.0)
+// ---------------------------------------------------------------------------
+class ScrollTriggeredDemo extends StatelessWidget {
+  const ScrollTriggeredDemo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Scroll-Triggered')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: ScrollAwareMotionLayout(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+          enterTransition: const FadeSlideIn(offset: Offset(0, 0.2)),
+          staggerDuration: const Duration(milliseconds: 60),
+          visibilityThreshold: 0.1,
+          child: Column(
+            children: [
+              for (int i = 1; i <= 30; i++)
+                Card(
+                  key: ValueKey(i),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          Colors.primaries[i % Colors.primaries.length],
+                      child: Text(
+                        '$i',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    title: Text('Item $i'),
+                    subtitle: const Text('Scroll down to reveal more items'),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo: MotionListView — Animated scrollable list (v1.0.0)
+// ---------------------------------------------------------------------------
+class MotionListViewDemo extends StatefulWidget {
+  const MotionListViewDemo({super.key});
+
+  @override
+  State<MotionListViewDemo> createState() => _MotionListViewDemoState();
+}
+
+class _MotionListViewDemoState extends State<MotionListViewDemo> {
+  final _items = List.generate(20, (i) => i + 1);
+  int _nextId = 21;
+
+  void _addItem() {
+    setState(() {
+      final index = _items.isEmpty ? 0 : Random().nextInt(_items.length);
+      _items.insert(index, _nextId++);
+    });
+  }
+
+  void _removeItem(int id) {
+    setState(() => _items.remove(id));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('MotionListView')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addItem,
+        child: const Icon(Icons.add),
+      ),
+      body: MotionListView(
+        padding: const EdgeInsets.all(16),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+        enterTransition: const FadeSlideIn(),
+        exitTransition: const FadeOut(),
+        staggerDuration: const Duration(milliseconds: 40),
+        children: [
+          for (final id in _items)
+            Card(
+              key: ValueKey(id),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor:
+                      Colors.primaries[id % Colors.primaries.length],
+                  child: Text(
+                    '$id',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                title: Text('Item $id'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => _removeItem(id),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo: Shared Element — Cross-tree FLIP animation (v1.1.0)
+// ---------------------------------------------------------------------------
+class SharedElementDemo extends StatefulWidget {
+  const SharedElementDemo({super.key});
+
+  @override
+  State<SharedElementDemo> createState() => _SharedElementDemoState();
+}
+
+class _SharedElementDemoState extends State<SharedElementDemo> {
+  bool _showGrid = true;
+
+  final _items = List.generate(
+    9,
+    (i) => (
+      id: i + 1,
+      color: Colors.primaries[i % Colors.primaries.length],
+      label: 'Item ${i + 1}',
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Shared Element'),
+        actions: [
+          IconButton(
+            icon: Icon(_showGrid ? Icons.list : Icons.grid_view),
+            onPressed: () => setState(() => _showGrid = !_showGrid),
+          ),
+        ],
+      ),
+      body: MotionLayoutScope(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 150),
+          child: _showGrid ? _buildGrid() : _buildList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGrid() {
+    return GridView.count(
+      key: const ValueKey('grid'),
+      crossAxisCount: 3,
+      padding: const EdgeInsets.all(16),
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      children: [
+        for (final item in _items)
+          MotionLayoutId(
+            id: 'shared-${item.id}',
+            child: Container(
+              decoration: BoxDecoration(
+                color: item.color.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.star, color: item.color),
+                  const SizedBox(height: 4),
+                  Text(item.label,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: item.color)),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildList() {
+    return ListView(
+      key: const ValueKey('list'),
+      padding: const EdgeInsets.all(16),
+      children: [
+        for (final item in _items)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: MotionLayoutId(
+              id: 'shared-${item.id}',
+              child: Container(
+                height: 64,
+                decoration: BoxDecoration(
+                  color: item.color.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Icon(Icons.star, color: item.color),
+                    const SizedBox(width: 12),
+                    Text(item.label,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, color: item.color)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

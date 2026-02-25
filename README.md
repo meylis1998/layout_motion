@@ -3,24 +3,38 @@
 [![pub package](https://img.shields.io/pub/v/layout_motion.svg)](https://pub.dev/packages/layout_motion)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Automatic FLIP layout animations for Flutter. Wrap any `Column`, `Row`, `Wrap`, or `Stack` to animate child additions, removals, and reorders with zero configuration.
+Automatic FLIP layout animations for Flutter. Wrap any `Column`, `Row`, `Wrap`, `Stack`, or `GridView` to animate child additions, removals, and reorders with zero configuration. Plus scrollable animated lists, shared element transitions, size morphing, and scroll-triggered animations.
 
 ## Features
 
+### Core
 - **Zero-config** — wrap your layout widget with `MotionLayout` and you're done
 - **FLIP technique** — GPU-accelerated `Transform` animations (paint phase only, no relayout per frame)
 - **Add / Remove / Reorder** — all detected automatically via key-based diffing
-- **Staggered animations** — cascading delays with configurable direction
+- **Column, Row, Wrap, Stack, GridView** — all supported layout types
+- **Staggered animations** — cascading delays with configurable direction (dual-axis for grids)
 - **Spring physics** — physics-based move animations with named presets
 - **Transition composition** — combine transitions with `+` operator: `FadeIn() + SlideIn()`
-- **Per-child curves** — separate curves for move, enter, and exit animations
 - **Drag-to-reorder** — long-press and drag to reorder with smooth FLIP animations
-- **Pop exit mode** — exiting children leave layout flow instantly while animating out
-- **Lifecycle callbacks** — `onAnimationStart`, `onAnimationComplete`, `onChildEnter`, `onChildExit`, `onChildMove`
+- **Size morphing** — animate size changes of existing children with `animateSizeChanges: true`
+
+### Scrollable Lists & Grids
+- **`MotionListView`** — animated scrollable list with `children` and `.builder` constructors
+- **`MotionGridView`** — animated scrollable grid with `children` and `.builder` constructors
+- **Lazy building** — `.builder` mode only builds visible items via slivers
+
+### Shared Element Transitions
+- **`MotionLayoutScope`** — coordinates cross-tree FLIP animations via a registry/graveyard pattern
+- **`MotionLayoutId`** — marks a widget for shared element animations (same-page Hero alternative)
+- **`MotionLayoutGroup`** — namespace isolation for independent animation contexts
+
+### Scroll-Triggered Animations
+- **`ScrollAwareMotionLayout`** — animates children as they first scroll into the viewport
+
+### General
 - **Auto reduced motion** — respects system accessibility settings by default
-- **Customizable transitions** — built-in presets plus easy custom transitions
 - **Interruption-safe** — mid-animation changes produce smooth redirects
-- **Accessible** — exiting children are excluded from the semantic tree and pointer events
+- **Accessible** — exiting children are excluded from the semantic tree
 - **Zero dependencies** — only depends on the Flutter SDK
 
 ## Getting Started
@@ -29,7 +43,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  layout_motion: ^0.5.0
+  layout_motion: ^1.1.0
 ```
 
 ## Usage
@@ -188,12 +202,150 @@ MotionLayout(
 )
 ```
 
+### GridView
+
+```dart
+MotionLayout(
+  enterTransition: const FadeScaleIn(),
+  spring: MotionSpring.smooth,
+  staggerDuration: const Duration(milliseconds: 30),
+  child: GridView.count(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    crossAxisCount: 3,
+    children: [
+      for (final item in items)
+        Card(key: ValueKey(item.id), child: Text(item.name)),
+    ],
+  ),
+)
+```
+
+### Size Morphing
+
+```dart
+MotionLayout(
+  animateSizeChanges: true,
+  child: Column(
+    children: [
+      for (final item in items)
+        ExpandableCard(
+          key: ValueKey(item.id),
+          expanded: item.isExpanded,
+          child: Text(item.content),
+        ),
+    ],
+  ),
+)
+```
+
+### Scroll-Triggered Animations
+
+```dart
+SingleChildScrollView(
+  child: ScrollAwareMotionLayout(
+    visibilityThreshold: 0.1,
+    animateOnce: true,
+    enterTransition: const FadeSlideIn(),
+    staggerDuration: const Duration(milliseconds: 80),
+    child: Column(
+      children: [
+        for (final item in items)
+          ListTile(key: ValueKey(item.id), title: Text(item.name)),
+      ],
+    ),
+  ),
+)
+```
+
+### MotionListView
+
+```dart
+// Children mode (small lists — wraps MotionLayout in a scroll view)
+MotionListView(
+  enterTransition: const FadeSlideIn(),
+  exitTransition: const FadeOut(),
+  children: [
+    for (final item in items)
+      ListTile(key: ValueKey(item.id), title: Text(item.name)),
+  ],
+)
+
+// Builder mode (large lists — lazy sliver-based rendering)
+MotionListView.builder(
+  itemCount: items.length,
+  itemBuilder: (context, index) => ListTile(
+    key: ValueKey(items[index].id),
+    title: Text(items[index].name),
+  ),
+  keyBuilder: (index) => ValueKey(items[index].id),
+  enterTransition: const FadeSlideIn(),
+)
+```
+
+### MotionGridView
+
+```dart
+MotionGridView(
+  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+  enterTransition: const FadeScaleIn(),
+  children: [
+    for (final item in items)
+      Card(key: ValueKey(item.id), child: Text(item.name)),
+  ],
+)
+```
+
+### Shared Element Transitions
+
+```dart
+MotionLayoutScope(
+  duration: const Duration(milliseconds: 400),
+  curve: Curves.easeOutCubic,
+  child: Scaffold(
+    body: showGrid
+      ? GridView(children: [
+          for (final item in items)
+            MotionLayoutId(id: 'item-${item.id}', child: ItemCard(item)),
+        ])
+      : ListView(children: [
+          for (final item in items)
+            MotionLayoutId(id: 'item-${item.id}', child: ItemTile(item)),
+        ]),
+  ),
+)
+```
+
+With namespace isolation:
+
+```dart
+MotionLayoutScope(
+  child: Column(children: [
+    MotionLayoutGroup(
+      namespace: 'favorites',
+      child: Row(children: [
+        for (final fav in favorites)
+          MotionLayoutId(id: fav.id, child: FavChip(fav)),
+      ]),
+    ),
+    MotionLayoutGroup(
+      namespace: 'all',
+      child: ListView(children: [
+        for (final item in all)
+          MotionLayoutId(id: item.id, child: ItemTile(item)),
+      ]),
+    ),
+  ]),
+)
+```
+
 ### Supported Layouts
 
 - `Column`
 - `Row`
 - `Wrap`
 - `Stack`
+- `GridView`
 
 ## Migrating from v0.3.x
 
@@ -218,7 +370,7 @@ v0.2.0 renamed the scale transition parameters for consistency:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `child` | `Widget` | required | A `Column`, `Row`, `Wrap`, or `Stack` |
+| `child` | `Widget` | required | A `Column`, `Row`, `Wrap`, `Stack`, or `GridView` |
 | `duration` | `Duration` | 300ms | Move animation duration (fallback for enter/exit transitions) |
 | `curve` | `Curve` | `Curves.easeInOut` | Animation curve (fallback for per-type curves) |
 | `enterTransition` | `MotionTransition?` | `FadeIn()` | Transition for entering children |
@@ -241,6 +393,10 @@ v0.2.0 renamed the scale transition parameters for consistency:
 | `exitLayoutBehavior` | `ExitLayoutBehavior` | `.maintain` | How exiting children affect layout (`.maintain` or `.pop`) |
 | `onReorder` | `void Function(int, int)?` | `null` | Called on drag-reorder with old and new indices. Enables drag when non-null. |
 | `dragDecorator` | `Widget Function(Widget)?` | `null` | Decorates the floating drag proxy during reorder |
+| `animateSizeChanges` | `bool` | `false` | Animate size changes of existing children |
+| `sizeChangeThreshold` | `double` | `2.0` | Minimum size delta to trigger morph animation |
+| `onChildSizeChange` | `ValueChanged<Key>?` | `null` | Called when a child begins a size morph |
+| `animateOnFirstBuild` | `bool` | `false` | Whether children animate on initial build |
 
 ### MotionSpring
 
@@ -301,7 +457,7 @@ Ensure all children have unique `Key`s. Without keys, Flutter cannot track which
 
 ### Unsupported layout type
 
-`MotionLayout` only supports `Column`, `Row`, `Wrap`, and `Stack` as the direct child. Other layout widgets are not supported.
+`MotionLayout` only supports `Column`, `Row`, `Wrap`, `Stack`, and `GridView` as the direct child. For scrollable lists, use `MotionListView` or `MotionGridView` instead.
 
 ### Children overlap during animation
 
@@ -309,7 +465,7 @@ Adjust the `clipBehavior` parameter. The default `Clip.hardEdge` clips overflowi
 
 ### Performance with many items
 
-For large lists where you temporarily need to disable animations (e.g. during bulk updates), set `enabled: false` to skip animation processing entirely.
+For large lists, use `MotionListView.builder` or `MotionGridView.builder` which only build visible items. For `MotionLayout`, set `enabled: false` during bulk updates to skip animation processing entirely.
 
 ## Accessibility
 
