@@ -71,9 +71,9 @@ class MotionListView extends StatefulWidget {
     this.onChildMove,
     this.visibilityThreshold = 0.1,
     this.animateOnce = true,
-  })  : itemCount = null,
-        itemBuilder = null,
-        keyBuilder = null;
+  }) : itemCount = null,
+       itemBuilder = null,
+       keyBuilder = null;
 
   /// Creates a scrollable animated list from a builder.
   ///
@@ -437,7 +437,8 @@ class _MotionListViewState extends State<MotionListView> {
     }
 
     // Determine if this item needs enter animation.
-    final needsEnter = !_isFirstBuild &&
+    final needsEnter =
+        !_isFirstBuild &&
         !_tracker!.seenKeys.contains(item.key) &&
         item.state != DisplayItemState.exiting;
 

@@ -9,10 +9,7 @@ import 'transitions/motion_transition.dart';
 
 /// A registration entry in the shared layout registry.
 class _LayoutIdRegistration {
-  _LayoutIdRegistration({
-    required this.globalKey,
-    required this.child,
-  });
+  _LayoutIdRegistration({required this.globalKey, required this.child});
 
   final GlobalKey globalKey;
   final Widget child;
@@ -160,7 +157,9 @@ class MotionLayoutScopeState extends State<MotionLayoutScope>
 
     // Capture global position
     final renderObject = key.currentContext?.findRenderObject();
-    if (renderObject == null || renderObject is! RenderBox || !renderObject.hasSize) {
+    if (renderObject == null ||
+        renderObject is! RenderBox ||
+        !renderObject.hasSize) {
       return;
     }
 
@@ -189,7 +188,9 @@ class MotionLayoutScopeState extends State<MotionLayoutScope>
 
     // Capture the new widget's global position
     final renderObject = key.currentContext?.findRenderObject();
-    if (renderObject == null || renderObject is! RenderBox || !renderObject.hasSize) {
+    if (renderObject == null ||
+        renderObject is! RenderBox ||
+        !renderObject.hasSize) {
       return;
     }
 

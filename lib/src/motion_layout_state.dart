@@ -53,7 +53,10 @@ class MotionLayoutState extends State<MotionLayout>
   ///
   /// Used by [ScrollAwareMotionLayout] to animate children that become
   /// visible in the viewport.
-  void triggerEnter(AnimatedChildEntry entry, {Duration delay = Duration.zero}) {
+  void triggerEnter(
+    AnimatedChildEntry entry, {
+    Duration delay = Duration.zero,
+  }) {
     _startEnter(entry, delay: delay);
     if (mounted) setState(() {});
   }

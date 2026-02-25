@@ -226,9 +226,9 @@ class _ScrollAwareMotionLayoutState extends State<ScrollAwareMotionLayout> {
     final scrollDirection = scrollable.axisDirection;
     final axis =
         scrollDirection == AxisDirection.up ||
-                scrollDirection == AxisDirection.down
-            ? Axis.vertical
-            : Axis.horizontal;
+            scrollDirection == AxisDirection.down
+        ? Axis.vertical
+        : Axis.horizontal;
 
     // Capture current child positions relative to parent.
     final keyMap = <Key, GlobalKey>{};

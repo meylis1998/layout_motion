@@ -23,10 +23,7 @@ class SharedAnimationOverlay {
     required Curve curve,
     MotionTransition? transition,
   }) {
-    final curvedAnimation = CurvedAnimation(
-      parent: controller,
-      curve: curve,
-    );
+    final curvedAnimation = CurvedAnimation(parent: controller, curve: curve);
 
     late final OverlayEntry entry;
     entry = OverlayEntry(

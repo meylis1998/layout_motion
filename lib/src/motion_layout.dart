@@ -61,8 +61,10 @@ class MotionLayout extends StatefulWidget {
     this.onChildSizeChange,
     this.animateOnFirstBuild = false,
   }) : assert(moveThreshold > 0, 'moveThreshold must be greater than 0'),
-       assert(sizeChangeThreshold > 0,
-           'sizeChangeThreshold must be greater than 0'),
+       assert(
+         sizeChangeThreshold > 0,
+         'sizeChangeThreshold must be greater than 0',
+       ),
        assert(
          child is Column ||
              child is Row ||

@@ -34,11 +34,7 @@ import 'motion_layout_scope.dart';
 /// ```
 /// {@end-tool}
 class MotionLayoutId extends StatefulWidget {
-  const MotionLayoutId({
-    super.key,
-    required this.id,
-    required this.child,
-  });
+  const MotionLayoutId({super.key, required this.id, required this.child});
 
   /// The shared identity for this widget. Two [MotionLayoutId] widgets with
   /// the same [id] (and same namespace via [MotionLayoutGroup]) will animate

@@ -46,11 +46,13 @@ class SizeMorphHandler {
       final dh = (after.size.height - before.size.height).abs();
 
       if (dw >= sizeThreshold || dh >= sizeThreshold) {
-        results.add(SizeMorphEntry(
-          key: key,
-          beforeSize: before.size,
-          afterSize: after.size,
-        ));
+        results.add(
+          SizeMorphEntry(
+            key: key,
+            beforeSize: before.size,
+            afterSize: after.size,
+          ),
+        );
       }
     }
 

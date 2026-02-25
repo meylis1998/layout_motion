@@ -72,9 +72,9 @@ class MotionGridView extends StatefulWidget {
     this.onChildMove,
     this.visibilityThreshold = 0.1,
     this.animateOnce = true,
-  })  : itemCount = null,
-        itemBuilder = null,
-        keyBuilder = null;
+  }) : itemCount = null,
+       itemBuilder = null,
+       keyBuilder = null;
 
   /// Creates a scrollable animated grid from a builder.
   ///
@@ -426,7 +426,8 @@ class _MotionGridViewState extends State<MotionGridView> {
       item.lastWidget = child;
     }
 
-    final needsEnter = !_isFirstBuild &&
+    final needsEnter =
+        !_isFirstBuild &&
         !_tracker!.seenKeys.contains(item.key) &&
         item.state != DisplayItemState.exiting;
 
